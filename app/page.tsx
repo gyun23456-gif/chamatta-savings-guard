@@ -44,6 +44,7 @@ export default function Home() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [storyOpen, setStoryOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [communityStories, setCommunityStories] = useState<Story[]>(demoStories);
   const [success, setSuccess] = useState<RecordItem | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -90,7 +91,7 @@ export default function Home() {
       {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
       {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
-      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} openGoal={() => setGoalOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
+      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
         <NavButton label="홈" icon="⌂" active={tab === 'market'} onClick={() => setTab('market')} />
@@ -103,6 +104,7 @@ export default function Home() {
       {recordOpen && <RecordModal onClose={() => setRecordOpen(false)} onSubmit={addRecord} />}
       {goalOpen && <GoalModal onClose={() => setGoalOpen(false)} onSubmit={addGoal} />}
       {storyOpen && <StoryModal onClose={() => setStoryOpen(false)} onSubmit={async (story) => { const optimistic:Story={...story,id:crypto.randomUUID(),createdAt:'방금 전',status:'pending'}; setCommunityStories(v=>[optimistic,...v]); setStoryOpen(false); try { const response=await fetch('/api/stories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(story)}); if(!response.ok) throw new Error(); } catch { setData(prev=>({...prev,stories:[optimistic,...(prev.stories??[])]})); } }} />}
+      {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onClose={() => setSuccess(null)} />}
     </main>
   );
@@ -183,11 +185,20 @@ function StatsView({ records, savedAmount, rate }: { records: RecordItem[]; save
   </div>;
 }
 
-function GoalsView({ goals, totalSaved, openGoal, removeGoal }: { goals: Goal[]; totalSaved: number; openGoal: () => void; removeGoal: (id: string) => void }) {
+function GoalsView({ goals, totalSaved, openGoal, openAdmin, removeGoal }: { goals: Goal[]; totalSaved: number; openGoal: () => void; openAdmin: () => void; removeGoal: (id: string) => void }) {
   return <div className="page"><PageHeading eyebrow="돈의 목적지" title="목표" subtitle="안 쓴 돈을 내가 원하는 미래에 연결해요." />
     <button className="add-goal" onClick={openGoal}><span>＋</span><div><b>새 목표 만들기</b><small>목표는 여러 개 만들 수 있어요</small></div></button>
+    <button className="admin-entry" onClick={openAdmin}><span>⚙️</span><div><b>운영자 센터</b><small>후기 승인 · 숨김 · 이벤트 선정</small></div><i>›</i></button>
     <section className="goal-stack">{goals.length ? goals.map((g, i) => { const p = Math.min(100, Math.round(totalSaved / g.amount * 100)); return <article className="full-goal" key={g.id}><button className="delete-goal" onClick={() => removeGoal(g.id)} aria-label={`${g.name} 삭제`}>×</button><div className="goal-emoji">{g.emoji}</div><span className="eyebrow">목표 {String(i + 1).padStart(2, '0')}</span><h2>{g.name}</h2><div className="goal-big"><b>{p}%</b><span>{money(totalSaved)}원 / {money(g.amount)}원</span></div><div className="progress"><i style={{ width: `${p}%` }} /></div><p>{p >= 100 ? '목표 달성! 이제 다음 목적지를 정해볼까요?' : `앞으로 ${money(Math.max(0, g.amount - totalSaved))}원만 더 지키면 도착해요.`}</p></article>; }) : <Empty icon="🏁" title="아직 정한 목표가 없어요" text="지키고 싶은 돈의 목적지를 만들어보세요." action="첫 목표 만들기" onAction={openGoal} />}</section>
   </div>;
+}
+
+function AdminPanel({onClose}:{onClose:()=>void}) {
+  const [stories,setStories]=useState<(Story&{reportCount?:number})[]>([]); const [loading,setLoading]=useState(true); const [denied,setDenied]=useState(false);
+  const load=()=>{setLoading(true);fetch('/api/admin/stories').then(r=>{if(!r.ok)throw new Error();return r.json()}).then(p=>setStories(p.stories??[])).catch(()=>setDenied(true)).finally(()=>setLoading(false));};
+  useEffect(load,[]);
+  const act=async(id:string,action:string)=>{await fetch('/api/admin/stories',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,action})});load();};
+  return <div className="admin-screen"><header><button onClick={onClose}>‹</button><div><small>CHAMATTA CONTROL</small><h1>운영자 센터</h1></div><span>{stories.filter(s=>s.status==='pending').length}</span></header>{loading?<Empty icon="⏳" title="후기를 불러오고 있어요" text="잠시만 기다려주세요."/>:denied?<Empty icon="🔒" title="운영자 전용 화면이에요" text="등록된 운영자 계정으로 로그인해주세요."/>:<><section className="admin-summary"><div><small>승인 대기</small><b>{stories.filter(s=>s.status==='pending').length}</b></div><div><small>공개 중</small><b>{stories.filter(s=>s.status==='approved').length}</b></div><div><small>신고 검토</small><b>{stories.filter(s=>(s.reportCount??0)>0).length}</b></div></section><div className="admin-list">{stories.length?stories.map(s=><article key={s.id}><div className="admin-story-top"><span className={`status-${s.status}`}>{s.status==='pending'?'승인 대기':s.status==='approved'?'공개':'숨김'}</span>{s.featured&&<em>🏆 방어왕</em>}<small>신고 {s.reportCount??0}</small></div><h2>{s.title}</h2><p>{s.body}</p><div className="admin-meta"><b>{s.nickname}</b><span>{s.goal} · {money(s.amount)}원 · #{s.tag}</span></div><footer>{s.status!=='approved'&&<button className="approve" onClick={()=>act(s.id,'approve')}>공개 승인</button>}<button onClick={()=>act(s.id,s.featured?'unfeature':'feature')}>{s.featured?'추천 해제':'방어왕 선정'}</button>{s.status!=='hidden'&&<button className="hide" onClick={()=>act(s.id,'hide')}>숨기기</button>}</footer></article>):<Empty icon="📭" title="검토할 후기가 없어요" text="새 후기가 들어오면 이곳에 표시됩니다."/>}</div></>}</div>;
 }
 
 function PageHeading({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) { return <header className="page-heading"><span>{eyebrow}</span><h1>{title}</h1><p>{subtitle}</p></header>; }
