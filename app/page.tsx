@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import ProfileModal from './ProfileModal';
 import SavingsModal, { SavingsQueue } from './SavingsModal';
+import CustomMenuModal from './CustomMenuModal';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
@@ -172,10 +173,16 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, finishOr
   const [selected, setSelected] = useState<Shop | null>(null);
   const [payMethod, setPayMethod] = useState('간편결제');
   const [campaign,setCampaign]=useState<Campaign|null>(null);
+  const [customMenus,setCustomMenus]=useState<MenuItem[]>([]);
+  const [customMenuOpen,setCustomMenuOpen]=useState(false);
   useEffect(()=>{fetch('/api/ads').then(r=>r.json()).then(p=>setCampaign((p.campaigns??[]).find((x:Campaign)=>x.placement==='market')??null)).catch(()=>undefined)},[]);
-  const filtered = shops.filter(s => (filter === '전체' || s.category === filter) && (!query.trim() || `${s.name} ${s.category} ${s.menus.map(m=>m.name).join(' ')}`.includes(query.trim())));
+  useEffect(()=>{try{const x=localStorage.getItem('chamatta-custom-menus-v1');if(x)setCustomMenus(JSON.parse(x))}catch{}},[]);
+  useEffect(()=>{localStorage.setItem('chamatta-custom-menus-v1',JSON.stringify(customMenus))},[customMenus]);
+  const customShop:Shop={id:'my-menu-shop',name:'나만의 메뉴 상점',category:'기타',icon:'👩‍🍳',rating:5,delivery:0,time:'바로 체험',badge:'내가 등록',menus:customMenus};
+  const allShops=customMenus.length?[customShop,...shops]:shops;
+  const filtered = allShops.filter(s => (filter === '전체' || s.category === filter) && (!query.trim() || `${s.name} ${s.category} ${s.menus.map(m=>m.name).join(' ')}`.includes(query.trim())));
   const itemTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const delivery = cart.length ? (shops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
+  const delivery = cart.length ? (allShops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
   const total = itemTotal + delivery;
   const add = (menu: MenuItem, shop: Shop) => setCart(prev => { const sameShop = prev.filter(i => i.shopId === shop.id); const found = sameShop.find(i => i.id === menu.id); return found ? sameShop.map(i => i.id === menu.id ? {...i,quantity:i.quantity+1}:i) : [...sameShop,{...menu,quantity:1,shopId:shop.id,shopName:shop.name}]; });
   const quantity = (id: string, delta: number) => setCart(prev => prev.map(i => i.id === id ? {...i,quantity:i.quantity+delta}:i).filter(i => i.quantity > 0));
@@ -193,8 +200,9 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, finishOr
     <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
     <section className="story-section"><div className="story-heading"><div><span>GOAL STORIES</span><h2>참은 사람들의 도착 후기</h2><p>진짜 목표를 이룬 순간을 나눠요.</p></div><button onClick={openStory}>후기 쓰기</button></div><div className="story-scroll">{stories.slice(0,4).map(s => <article className={s.featured?'story-card featured':'story-card'} key={s.id}><div><span>{s.status==='pending'?'⏳ 승인 대기':s.featured?'🏆 이달의 방어왕':`#${s.tag}`}</span><small>{s.createdAt}</small></div><h3>{s.title}</h3><p>“{s.body}”</p><footer><b>{s.nickname}</b><span>{s.goal} · {money(s.amount)}원 · {s.period}</span></footer></article>)}</div></section>
     <button className="sponsor-card" onMouseEnter={()=>campaign&&fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'view'})})} onClick={()=>{if(campaign){fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'click'})});window.open(campaign.linkUrl,'_blank','noopener,noreferrer')}else openAdInquiry();}}><span><em>{campaign?.label??'AD · 제휴 예시'}</em><b>{campaign?.title??'목표를 응원하는 브랜드 자리'}</b><small>{campaign?.description??'참았다!와 함께할 파트너를 기다립니다.'}</small></span><i>{campaign?'자세히 ›':'광고 문의 ›'}</i></button>
-    <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button>추천순⌄</button></div>
+    <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button className="add-custom-menu" onClick={()=>setCustomMenuOpen(true)}>＋ 내 메뉴</button></div>
     <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p><mark>{s.menus.slice(0,2).map(m=>m.name).join(' · ')}</mark></div><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
+    {customMenuOpen&&<CustomMenuModal onClose={()=>setCustomMenuOpen(false)} onAdd={menu=>{setCustomMenus(v=>[menu,...v]);setCustomMenuOpen(false);setFilter('전체')}}/>}
   </div>;
 }
 
