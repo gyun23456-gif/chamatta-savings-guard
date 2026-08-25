@@ -67,6 +67,7 @@ export default function Home() {
   const [adInquiryOpen, setAdInquiryOpen] = useState(false);
   const [profileOpen,setProfileOpen]=useState(false);
   const [profile,setProfile]=useState<Profile>({authenticated:false});
+  const [syncReady,setSyncReady]=useState(false);
   const [communityStories, setCommunityStories] = useState<Story[]>(demoStories);
   const [success, setSuccess] = useState<RecordItem | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -80,6 +81,8 @@ export default function Home() {
   useEffect(() => { if (loaded) localStorage.setItem('chamatta-data-v1', JSON.stringify(data)); }, [data, loaded]);
   useEffect(() => { fetch('/api/stories').then(r=>r.ok?r.json():Promise.reject()).then(payload=>setCommunityStories([...(payload.pending??[]),...(payload.stories??[]),...demoStories])).catch(()=>setCommunityStories([...(data.stories??[]),...demoStories])); }, []);
   useEffect(()=>{fetch('/api/profile').then(r=>r.json()).then(setProfile).catch(()=>undefined)},[]);
+  useEffect(()=>{if(!loaded||!profile.authenticated)return;fetch('/api/data').then(r=>r.ok?r.json():Promise.reject()).then(async cloud=>{if(cloud.hasData)setData({records:cloud.records??[],goals:cloud.goals??[]});else if(data.records.length||data.goals.length)await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:data.records,goals:data.goals})});setSyncReady(true)}).catch(()=>setSyncReady(false))},[loaded,profile.authenticated]);
+  useEffect(()=>{if(!syncReady||!profile.authenticated)return;const timer=setTimeout(()=>fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:data.records,goals:data.goals})}).catch(()=>undefined),500);return()=>clearTimeout(timer)},[data.records,data.goals,syncReady,profile.authenticated]);
 
   const saved = data.records.filter(r => r.result === 'saved');
   const monthRecords = data.records.filter(r => r.date.startsWith(monthKey()));
