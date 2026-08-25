@@ -6,7 +6,8 @@ type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
 type RecordItem = { id: string; category: string; amount: number; memo: string; result: Result; date: string };
 type Goal = { id: string; name: string; amount: number; emoji: string };
-type AppData = { records: RecordItem[]; goals: Goal[] };
+type Story = { id: string; nickname: string; title: string; body: string; goal: string; amount: number; period: string; tag: string; createdAt: string; featured?: boolean };
+type AppData = { records: RecordItem[]; goals: Goal[]; stories?: Story[] };
 type MenuItem = { id: string; name: string; description: string; price: number; icon: string };
 type Shop = { id: string; name: string; category: string; icon: string; rating: number; delivery: number; time: string; badge?: string; menus: MenuItem[] };
 type CartItem = MenuItem & { quantity: number; shopId: string; shopName: string };
@@ -27,6 +28,10 @@ const shops: Shop[] = [
   { id:'midnight-kitchen', name:'자정의 주방', category:'야식', icon:'🌙', rating:4.6, delivery:3000, time:'35~50분', menus:[{id:'feet',name:'불향 무뼈 닭발',description:'화끈한 불맛과 쫄깃한 식감',price:17900,icon:'🔥'},{id:'pork',name:'마늘 보쌈',description:'부드러운 수육과 알싸한 마늘',price:24900,icon:'🥩'},{id:'soup',name:'얼큰 어묵탕',description:'꼬치 어묵과 칼칼한 국물',price:13900,icon:'🍢'}]},
 ];
 const emptyData: AppData = { records: [], goals: [] };
+const demoStories: Story[] = [
+  {id:'demo-1',nickname:'주말엔 산책',title:'야식비를 모아 제주도에 다녀왔어요',body:'매번 배달앱을 켤 때 가상 장바구니에 먼저 담았어요. 10분만 기다려보니 생각보다 자주 마음이 지나갔고, 5개월 뒤 정말 여행을 떠났습니다.',goal:'제주도 여행',amount:620000,period:'5개월',tag:'여행',createdAt:'베타 후기',featured:true},
+  {id:'demo-2',nickname:'라테는 집에서',title:'작은 커피값이 비상금이 됐어요',body:'매일 한 번의 선택을 기록했을 뿐인데 숫자로 보이니까 계속하고 싶어졌어요. 목표를 채운 날의 뿌듯함은 아직도 기억나요.',goal:'비상금 만들기',amount:300000,period:'3개월',tag:'비상금',createdAt:'베타 후기'},
+];
 const money = (n: number) => n.toLocaleString('ko-KR');
 const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const monthKey = () => dateKey().slice(0, 7);
@@ -38,6 +43,7 @@ export default function Home() {
   const [loaded, setLoaded] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [storyOpen, setStoryOpen] = useState(false);
   const [success, setSuccess] = useState<RecordItem | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [historyDate, setHistoryDate] = useState(dateKey());
@@ -79,7 +85,7 @@ export default function Home() {
       </header>}
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
-      {tab === 'market' && <MarketView cart={cart} setCart={setCart} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
+      {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={[...(data.stories ?? []),...demoStories]} openStory={() => setStoryOpen(true)} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
       {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} openGoal={() => setGoalOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
@@ -94,6 +100,7 @@ export default function Home() {
 
       {recordOpen && <RecordModal onClose={() => setRecordOpen(false)} onSubmit={addRecord} />}
       {goalOpen && <GoalModal onClose={() => setGoalOpen(false)} onSubmit={addGoal} />}
+      {storyOpen && <StoryModal onClose={() => setStoryOpen(false)} onSubmit={(story) => { setData(prev => ({...prev,stories:[{...story,id:crypto.randomUUID(),createdAt:'방금 전'},...(prev.stories ?? [])]})); setStoryOpen(false); }} />}
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onClose={() => setSuccess(null)} />}
     </main>
   );
@@ -119,7 +126,7 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
   </div>;
 }
 
-function MarketView({ cart, setCart, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; finishOrder: (result: Result, total: number, memo: string) => void }) {
+function MarketView({ cart, setCart, stories, openStory, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; finishOrder: (result: Result, total: number, memo: string) => void }) {
   const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
   const [filter, setFilter] = useState('전체');
   const [query, setQuery] = useState('');
@@ -144,6 +151,7 @@ function MarketView({ cart, setCart, finishOrder }: { cart: CartItem[]; setCart:
     <label className="food-search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="음식이나 가게를 검색해보세요"/><button onClick={()=>setQuery('')} aria-label="검색어 지우기">{query?'×':'⌘'}</button></label>
     <section className="category-bubbles">{shopCategories.slice(1).map(c => { const icon=shops.find(s=>s.category===c)?.icon ?? '🍽️'; return <button className={filter===c?'selected':''} onClick={()=>setFilter(filter===c?'전체':c)} key={c}><span>{icon}</span><b>{c}</b></button>})}</section>
     <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
+    <section className="story-section"><div className="story-heading"><div><span>GOAL STORIES</span><h2>참은 사람들의 도착 후기</h2><p>진짜 목표를 이룬 순간을 나눠요.</p></div><button onClick={openStory}>후기 쓰기</button></div><div className="story-scroll">{stories.slice(0,4).map(s => <article className={s.featured?'story-card featured':'story-card'} key={s.id}><div><span>{s.featured?'🏆 이달의 방어왕':`#${s.tag}`}</span><small>{s.createdAt}</small></div><h3>{s.title}</h3><p>“{s.body}”</p><footer><b>{s.nickname}</b><span>{s.goal} · {money(s.amount)}원 · {s.period}</span></footer></article>)}</div></section>
     <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button>추천순⌄</button></div>
     <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p><mark>{s.menus.slice(0,2).map(m=>m.name).join(' · ')}</mark></div><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
   </div>;
@@ -203,6 +211,12 @@ function GoalModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (v: O
   const [name, setName] = useState(''); const [amount, setAmount] = useState(''); const [emoji, setEmoji] = useState('✈️');
   const submit = (e: FormEvent) => { e.preventDefault(); const value = Number(amount); if (name.trim() && value > 0) onSubmit({ name: name.trim(), amount: value, emoji }); };
   return <ModalShell title="돈의 목적지를 정해요" subtitle="참을 때마다 목표에 한 걸음 가까워져요." onClose={onClose}><form onSubmit={submit} className="goal-form"><fieldset><legend>목표 아이콘</legend><div className="emoji-grid">{['✈️','🏡','🛟','💻','🎁','🌿'].map(e => <button type="button" key={e} className={emoji === e ? 'selected' : ''} onClick={() => setEmoji(e)}>{e}</button>)}</div></fieldset><label><span>목표 이름</span><input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="예: 제주도 한 달 살기" required maxLength={30} /></label><label className="amount-field"><span>목표 금액</span><div><input inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value.replace(/[^0-9]/g, ''))} placeholder="0" required /><b>원</b></div></label><button className="submit-button" disabled={!name.trim() || !Number(amount)}>목표 만들기</button></form></ModalShell>;
+}
+
+function StoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (v: Omit<Story,'id'|'createdAt'>) => void }) {
+  const [nickname,setNickname]=useState(''); const [title,setTitle]=useState(''); const [body,setBody]=useState(''); const [goal,setGoal]=useState(''); const [amount,setAmount]=useState(''); const [period,setPeriod]=useState(''); const [tag,setTag]=useState('여행');
+  const submit=(e:FormEvent)=>{e.preventDefault();if(nickname.trim()&&title.trim()&&body.trim()&&goal.trim()&&Number(amount)>0)onSubmit({nickname:nickname.trim(),title:title.trim(),body:body.trim(),goal:goal.trim(),amount:Number(amount),period:period.trim()||'기간 비공개',tag,featured:false});};
+  return <ModalShell title="나의 도착 후기를 들려주세요" subtitle="당신의 경험이 누군가의 다음 선택을 도와요." onClose={onClose}><form className="story-form" onSubmit={submit}><div className="story-event-note"><span>🎉</span><p><b>이벤트 활용 준비 완료</b><br/>작성한 후기는 추후 ‘이달의 방어왕’ 후보로 활용할 수 있어요.</p></div><div className="story-two"><label><span>닉네임</span><input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="예: 야식졸업생" required maxLength={16}/></label><label><span>걸린 기간</span><input value={period} onChange={e=>setPeriod(e.target.value)} placeholder="예: 5개월" maxLength={12}/></label></div><label><span>후기 제목</span><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="예: 참은 야식비로 제주도에 갔어요" required maxLength={40}/></label><label><span>달성한 목표</span><input value={goal} onChange={e=>setGoal(e.target.value)} placeholder="예: 제주도 여행" required maxLength={24}/></label><label className="amount-field"><span>모은 금액</span><div><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder="0" required/><b>원</b></div></label><fieldset><legend>목표 태그</legend><div className="story-tags">{['여행','비상금','쇼핑','건강','취미'].map(t=><button type="button" className={tag===t?'selected':''} onClick={()=>setTag(t)} key={t}>#{t}</button>)}</div></fieldset><label><span>나의 이야기</span><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="어떻게 참았고, 목표를 이뤘을 때 어떤 기분이었는지 들려주세요." required maxLength={280}/><small>{body.length}/280</small></label><button className="submit-button" disabled={!nickname.trim()||!title.trim()||!body.trim()||!goal.trim()||!Number(amount)}>후기 등록하기</button></form></ModalShell>;
 }
 
 function SuccessModal({ record, total, streak, onClose }: { record: RecordItem; total: number; streak: number; onClose: () => void }) { return <div className="success-screen" role="dialog" aria-modal="true"><div className="confetti">✦ <i>●</i> ✦ <em>◆</em> ✦</div><div className="success-shield"><span>✓</span></div><span className="success-label">방어 성공</span><h2>{money(record.amount)}원</h2><p>{record.memo || record.category}의 유혹을 넘겼어요.<br/>오늘의 선택이 미래의 나를 만들어요.</p><div className="success-stats"><div><small>누적 지킨 돈</small><b>{money(total)}원</b></div><i/><div><small>연속 방어</small><b>🔥 {streak}일</b></div></div><button onClick={onClose}>좋아, 계속 지켜볼게!</button></div>; }
