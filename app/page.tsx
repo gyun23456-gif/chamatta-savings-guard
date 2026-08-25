@@ -2,17 +2,29 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
-type Tab = 'home' | 'history' | 'stats' | 'goals';
+type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
 type RecordItem = { id: string; category: string; amount: number; memo: string; result: Result; date: string };
 type Goal = { id: string; name: string; amount: number; emoji: string };
 type AppData = { records: RecordItem[]; goals: Goal[] };
+type MenuItem = { id: string; name: string; description: string; price: number; icon: string };
+type Shop = { id: string; name: string; category: string; icon: string; rating: number; delivery: number; time: string; badge?: string; menus: MenuItem[] };
+type CartItem = MenuItem & { quantity: number; shopId: string; shopName: string };
 
 const categories = [
   { id: '배달', icon: '🍜', color: '#ffefdc' }, { id: '카페', icon: '☕', color: '#e9e1d7' },
   { id: '쇼핑', icon: '🛍️', color: '#f2e5ff' }, { id: '택시', icon: '🚕', color: '#fff3c7' },
   { id: '게임/앱결제', icon: '🎮', color: '#dfeeff' }, { id: '술자리', icon: '🍺', color: '#ffe8b5' },
   { id: '기타', icon: '✨', color: '#e9efe5' },
+];
+const shopCategories = ['전체', '한식', '치킨', '분식', '카페', '아시안', '야식'];
+const shops: Shop[] = [
+  { id:'warm-table', name:'따뜻한 한상', category:'한식', icon:'🍲', rating:4.8, delivery:2000, time:'25~35분', badge:'혼밥 추천', menus:[{id:'kimchi',name:'묵은지 김치찌개',description:'푹 익은 묵은지와 두툼한 돼지고기',price:9900,icon:'🍲'},{id:'bulgogi',name:'직화 불고기 한상',description:'불향 가득 불고기와 5가지 반찬',price:13900,icon:'🥘'},{id:'bibim',name:'계절 나물 비빔밥',description:'신선한 제철 나물과 고추장',price:8900,icon:'🍚'}]},
+  { id:'crunch-lab', name:'바삭 연구소', category:'치킨', icon:'🍗', rating:4.9, delivery:0, time:'30~40분', badge:'배달비 0원', menus:[{id:'crisp',name:'시그니처 바삭 치킨',description:'두 번 튀겨 더 바삭한 한 마리',price:19900,icon:'🍗'},{id:'soy',name:'단짠 간장 치킨',description:'마늘 간장 소스와 바삭한 식감',price:20900,icon:'🍗'},{id:'wing',name:'매콤 윙 12조각',description:'알싸하게 매콤한 윙과 봉',price:16900,icon:'🌶️'}]},
+  { id:'school-snack', name:'방과후 분식', category:'분식', icon:'🍢', rating:4.7, delivery:1500, time:'20~30분', badge:'인기 급상승', menus:[{id:'tteok',name:'쫄깃 국물 떡볶이',description:'밀떡과 어묵이 듬뿍',price:6500,icon:'🌶️'},{id:'sundae',name:'찰순대 한 접시',description:'쫀득한 순대와 내장 모둠',price:6000,icon:'🍽️'},{id:'set',name:'분식 올스타 세트',description:'떡볶이·순대·튀김·어묵',price:18900,icon:'🍢'}]},
+  { id:'slow-coffee', name:'느린 오후', category:'카페', icon:'☕', rating:4.9, delivery:1000, time:'15~25분', badge:'디저트 맛집', menus:[{id:'latte',name:'너티 크림 라테',description:'고소한 크림과 진한 에스프레소',price:5900,icon:'☕'},{id:'ade',name:'제주 청귤 에이드',description:'상큼한 청귤과 탄산',price:5500,icon:'🍊'},{id:'cake',name:'말차 크림 케이크',description:'쌉싸름한 말차와 부드러운 크림',price:6900,icon:'🍰'}]},
+  { id:'bangkok-night', name:'방콕의 밤', category:'아시안', icon:'🍜', rating:4.8, delivery:2500, time:'30~45분', badge:'현지의 맛', menus:[{id:'padthai',name:'새우 팟타이',description:'탱글한 새우와 새콤달콤 소스',price:12900,icon:'🍜'},{id:'rice',name:'카오팟 볶음밥',description:'불향 가득 태국식 볶음밥',price:10900,icon:'🍚'},{id:'tom',name:'똠얌꿍',description:'새우와 향신료의 진한 국물',price:14900,icon:'🥣'}]},
+  { id:'midnight-kitchen', name:'자정의 주방', category:'야식', icon:'🌙', rating:4.6, delivery:3000, time:'35~50분', menus:[{id:'feet',name:'불향 무뼈 닭발',description:'화끈한 불맛과 쫄깃한 식감',price:17900,icon:'🔥'},{id:'pork',name:'마늘 보쌈',description:'부드러운 수육과 알싸한 마늘',price:24900,icon:'🥩'},{id:'soup',name:'얼큰 어묵탕',description:'꼬치 어묵과 칼칼한 국물',price:13900,icon:'🍢'}]},
 ];
 const emptyData: AppData = { records: [], goals: [] };
 const money = (n: number) => n.toLocaleString('ko-KR');
@@ -27,6 +39,7 @@ export default function Home() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [goalOpen, setGoalOpen] = useState(false);
   const [success, setSuccess] = useState<RecordItem | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [historyDate, setHistoryDate] = useState(dateKey());
 
   useEffect(() => {
@@ -65,13 +78,15 @@ export default function Home() {
         <div className="streak-pill">🔥 {streak}일</div>
       </header>
 
-      {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
+      {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
+      {tab === 'market' && <MarketView cart={cart} setCart={setCart} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
       {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} openGoal={() => setGoalOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
         <NavButton label="홈" icon="⌂" active={tab === 'home'} onClick={() => setTab('home')} />
+        <NavButton label="가상상점" icon="⌘" active={tab === 'market'} onClick={() => setTab('market')} />
         <NavButton label="내역" icon="◷" active={tab === 'history'} onClick={() => setTab('history')} />
         <button className="nav-action" onClick={() => setRecordOpen(true)} aria-label="새 기록"><span>＋</span></button>
         <NavButton label="통계" icon="▥" active={tab === 'stats'} onClick={() => setTab('stats')} />
@@ -87,7 +102,7 @@ export default function Home() {
 
 function NavButton({ label, icon, active, onClick }: { label: string; icon: string; active: boolean; onClick: () => void }) { return <button className={active ? 'active' : ''} onClick={onClick}><span>{icon}</span>{label}</button>; }
 
-function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, openRecord, goHistory, goGoals }: { monthSaved: number; todaySaved: number; totalSaved: number; streak: number; records: RecordItem[]; goals: Goal[]; openRecord: () => void; goHistory: () => void; goGoals: () => void }) {
+function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, openRecord, goMarket, goHistory, goGoals }: { monthSaved: number; todaySaved: number; totalSaved: number; streak: number; records: RecordItem[]; goals: Goal[]; openRecord: () => void; goMarket: () => void; goHistory: () => void; goGoals: () => void }) {
   const goal = goals[0]; const percent = goal ? Math.min(100, Math.round(totalSaved / goal.amount * 100)) : 0;
   return <div className="page home-page">
     <section className="hero-card">
@@ -96,6 +111,7 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
       <div className="hero-bottom"><span>오늘 지킨 돈</span><b>{money(todaySaved)}원</b><span className="hero-divider" /><span>연속 방어</span><b>{streak}일</b></div>
     </section>
     <button className="primary-cta" onClick={openRecord}><span>＋</span><b>참았다!</b><small>방금 넘긴 소비 유혹 기록하기</small></button>
+    <button className="market-entry" onClick={goMarket}><span>🛵</span><div><small>새로운 방어 훈련</small><b>가상 상점에서 주문해보기</b><em>결제 직전, 한 번 더 생각해요</em></div><i>›</i></button>
     {goal ? <button className="goal-card home-goal" onClick={goGoals}>
       <div className="goal-top"><div><span className="eyebrow">나의 첫 번째 목표</span><h2>{goal.emoji} {goal.name}</h2></div><b>{percent}%</b></div>
       <div className="progress"><i style={{ width: `${percent}%` }} /></div><div className="goal-numbers"><span><b>{money(totalSaved)}원</b> 지켰어요</span><span>목표 {money(goal.amount)}원</span></div>
@@ -103,6 +119,29 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
     <section className="section-block"><div className="section-title"><h2>최근 기록</h2>{records.length > 0 && <button onClick={goHistory}>전체 보기</button>}</div>{records.length ? <RecordList records={records.slice(0, 4)} /> : <Empty icon="🌱" title="아직 기록이 없어요" text="오늘 참은 작은 소비부터 남겨보세요." action="첫 기록 남기기" onAction={openRecord} />}</section>
   </div>;
 }
+
+function MarketView({ cart, setCart, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; finishOrder: (result: Result, total: number, memo: string) => void }) {
+  const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
+  const [filter, setFilter] = useState('전체');
+  const [selected, setSelected] = useState<Shop | null>(null);
+  const [payMethod, setPayMethod] = useState('간편결제');
+  const filtered = filter === '전체' ? shops : shops.filter(s => s.category === filter);
+  const itemTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const delivery = cart.length ? (shops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
+  const total = itemTotal + delivery;
+  const add = (menu: MenuItem, shop: Shop) => setCart(prev => { const sameShop = prev.filter(i => i.shopId === shop.id); const found = sameShop.find(i => i.id === menu.id); return found ? sameShop.map(i => i.id === menu.id ? {...i,quantity:i.quantity+1}:i) : [...sameShop,{...menu,quantity:1,shopId:shop.id,shopName:shop.name}]; });
+  const quantity = (id: string, delta: number) => setCart(prev => prev.map(i => i.id === id ? {...i,quantity:i.quantity+delta}:i).filter(i => i.quantity > 0));
+
+  if (step === 'shop' && selected) return <div className="page market-page"><MarketHeader title={selected.name} back={() => setStep('list')} cartCount={cart.reduce((s,i)=>s+i.quantity,0)} openCart={() => setStep('cart')} /><section className="shop-hero"><span>{selected.icon}</span><div><small>{selected.category} · {selected.time}</small><h1>{selected.name}</h1><p>★ {selected.rating} · 배달비 {selected.delivery ? `${money(selected.delivery)}원` : '무료'}</p></div></section><div className="shop-notice">이곳의 상점과 주문은 모두 가상 체험입니다.</div><section className="menu-list"><h2>대표 메뉴</h2>{selected.menus.map(m => <article className="menu-card" key={m.id}><div className="menu-copy"><h3>{m.name}</h3><p>{m.description}</p><b>{money(m.price)}원</b><button onClick={() => add(m,selected)}>장바구니 담기</button></div><span>{m.icon}</span></article>)}</section>{cart.length > 0 && <button className="floating-cart" onClick={() => setStep('cart')}><span>{cart.reduce((s,i)=>s+i.quantity,0)}</span><b>장바구니 보기</b><strong>{money(total)}원</strong></button>}</div>;
+
+  if (step === 'cart') return <div className="page market-page"><MarketHeader title="장바구니" back={() => setStep(selected ? 'shop':'list')} cartCount={0} openCart={() => undefined} />{cart.length ? <><section className="cart-shop"><small>가상 상점</small><h2>{cart[0].shopName}</h2>{cart.map(i => <div className="cart-row" key={i.id}><span>{i.icon}</span><div><b>{i.name}</b><small>{money(i.price)}원</small></div><div className="quantity"><button onClick={() => quantity(i.id,-1)}>−</button><b>{i.quantity}</b><button onClick={() => quantity(i.id,1)}>＋</button></div></div>)}</section><section className="bill"><div><span>메뉴 금액</span><b>{money(itemTotal)}원</b></div><div><span>배달비</span><b>{delivery ? `${money(delivery)}원` : '무료'}</b></div><div className="bill-total"><span>총 주문금액</span><b>{money(total)}원</b></div></section><button className="checkout-button" onClick={() => setStep('checkout')}>{money(total)}원 주문하기</button></> : <Empty icon="🛒" title="장바구니가 비었어요" text="가상 상점에서 먹고 싶은 메뉴를 골라보세요." action="상점 둘러보기" onAction={() => setStep('list')} />}</div>;
+
+  if (step === 'checkout') return <div className="page market-page"><MarketHeader title="모의 결제" back={() => setStep('cart')} cartCount={0} openCart={() => undefined} /><div className="simulation-banner"><span>i</span><p><b>실제 결제가 아니에요</b><br/>카드·계좌 정보는 입력하거나 저장하지 않습니다.</p></div><section className="checkout-card"><h2>주문 정보</h2><div><span>{cart[0]?.shopName}</span><b>{cart.reduce((s,i)=>s+i.quantity,0)}개 메뉴</b></div><div><span>결제 예정 금액</span><strong>{money(total)}원</strong></div></section><section className="payment-card"><h2>결제 수단 체험</h2>{['간편결제','신용·체크카드','현장 결제'].map(p => <button className={payMethod===p?'selected':''} onClick={() => setPayMethod(p)} key={p}><span>{p==='간편결제'?'⚡':p==='신용·체크카드'?'▣':'⌂'}</span><b>{p}</b><i>{payMethod===p?'●':'○'}</i></button>)}</section><section className="decision-zone"><span>결제 직전 마지막 선택</span><h2>이 {money(total)}원, 정말 쓸까요?</h2><p>어떤 선택이든 기록하면 다음 판단이 쉬워져요.</p><button className="defend-order" onClick={() => finishOrder('saved',total,`${cart[0]?.shopName} 가상 주문`)}>🛡️ 주문을 멈추고 참았다!</button><button className="buy-order" onClick={() => finishOrder('spent',total,`${cart[0]?.shopName} 가상 주문`)}>모의 결제 완료 · 결국 샀다</button></section></div>;
+
+  return <div className="page market-page"><MarketHeader title="가상 상점" back={undefined} cartCount={cart.reduce((s,i)=>s+i.quantity,0)} openCart={() => setStep('cart')} /><section className="market-hero"><span>오늘도 선택의 주인은 나</span><h1>먹고 싶은 마음,<br/>여기서 먼저 담아봐요.</h1><p>결제는 없고, 선택의 기록만 남아요.</p><div>🛵</div></section><div className="shop-filters">{shopCategories.map(c => <button className={filter===c?'selected':''} onClick={() => setFilter(c)} key={c}>{c}</button>)}</div><section className="shop-list">{filtered.map(s => <button className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p></div><i>›</i></button>)}</section></div>;
+}
+
+function MarketHeader({ title, back, cartCount, openCart }: { title: string; back?: () => void; cartCount: number; openCart: () => void }) { return <header className="market-header">{back ? <button onClick={back} aria-label="뒤로">‹</button> : <span className="mini-logo">ㅊ</span>}<h1>{title}</h1><button className="cart-icon" onClick={openCart} aria-label="장바구니">🛒{cartCount > 0 && <i>{cartCount}</i>}</button></header>; }
 
 function HistoryView({ records, selectedDate, setSelectedDate, removeRecord }: { records: RecordItem[]; selectedDate: string; setSelectedDate: (v: string) => void; removeRecord: (id: string) => void }) {
   const filtered = records.filter(r => r.date === selectedDate); const saved = filtered.filter(r => r.result === 'saved').reduce((s, r) => s + r.amount, 0);
