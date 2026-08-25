@@ -33,7 +33,7 @@ const monthKey = () => dateKey().slice(0, 7);
 const getCategory = (id: string) => categories.find(c => c.id === id) ?? categories[6];
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>('market');
   const [data, setData] = useState<AppData>(emptyData);
   const [loaded, setLoaded] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
@@ -73,10 +73,10 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <header className="topbar">
+      {tab !== 'market' && <header className="topbar">
         <button className="brand-button" onClick={() => setTab('home')} aria-label="홈으로"><span>ㅊ</span><div><strong>참았다!</strong><small>안 쓴 돈이 보이기 시작한다.</small></div></button>
         <div className="streak-pill">🔥 {streak}일</div>
-      </header>
+      </header>}
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
       {tab === 'market' && <MarketView cart={cart} setCart={setCart} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
@@ -85,12 +85,11 @@ export default function Home() {
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} openGoal={() => setGoalOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
-        <NavButton label="홈" icon="⌂" active={tab === 'home'} onClick={() => setTab('home')} />
-        <NavButton label="가상상점" icon="⌘" active={tab === 'market'} onClick={() => setTab('market')} />
-        <NavButton label="내역" icon="◷" active={tab === 'history'} onClick={() => setTab('history')} />
+        <NavButton label="홈" icon="⌂" active={tab === 'market'} onClick={() => setTab('market')} />
+        <NavButton label="주문" icon="◷" active={tab === 'history'} onClick={() => setTab('history')} />
         <button className="nav-action" onClick={() => setRecordOpen(true)} aria-label="새 기록"><span>＋</span></button>
-        <NavButton label="통계" icon="▥" active={tab === 'stats'} onClick={() => setTab('stats')} />
-        <NavButton label="목표" icon="◇" active={tab === 'goals'} onClick={() => setTab('goals')} />
+        <NavButton label="리포트" icon="▥" active={tab === 'stats' || tab === 'home'} onClick={() => setTab('stats')} />
+        <NavButton label="마이" icon="◇" active={tab === 'goals'} onClick={() => setTab('goals')} />
       </nav>
 
       {recordOpen && <RecordModal onClose={() => setRecordOpen(false)} onSubmit={addRecord} />}
@@ -123,9 +122,11 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
 function MarketView({ cart, setCart, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; finishOrder: (result: Result, total: number, memo: string) => void }) {
   const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
   const [filter, setFilter] = useState('전체');
+  const [query, setQuery] = useState('');
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [selected, setSelected] = useState<Shop | null>(null);
   const [payMethod, setPayMethod] = useState('간편결제');
-  const filtered = filter === '전체' ? shops : shops.filter(s => s.category === filter);
+  const filtered = shops.filter(s => (filter === '전체' || s.category === filter) && (!query.trim() || `${s.name} ${s.category} ${s.menus.map(m=>m.name).join(' ')}`.includes(query.trim())));
   const itemTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const delivery = cart.length ? (shops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
   const total = itemTotal + delivery;
@@ -138,7 +139,14 @@ function MarketView({ cart, setCart, finishOrder }: { cart: CartItem[]; setCart:
 
   if (step === 'checkout') return <div className="page market-page"><MarketHeader title="모의 결제" back={() => setStep('cart')} cartCount={0} openCart={() => undefined} /><div className="simulation-banner"><span>i</span><p><b>실제 결제가 아니에요</b><br/>카드·계좌 정보는 입력하거나 저장하지 않습니다.</p></div><section className="checkout-card"><h2>주문 정보</h2><div><span>{cart[0]?.shopName}</span><b>{cart.reduce((s,i)=>s+i.quantity,0)}개 메뉴</b></div><div><span>결제 예정 금액</span><strong>{money(total)}원</strong></div></section><section className="payment-card"><h2>결제 수단 체험</h2>{['간편결제','신용·체크카드','현장 결제'].map(p => <button className={payMethod===p?'selected':''} onClick={() => setPayMethod(p)} key={p}><span>{p==='간편결제'?'⚡':p==='신용·체크카드'?'▣':'⌂'}</span><b>{p}</b><i>{payMethod===p?'●':'○'}</i></button>)}</section><section className="decision-zone"><span>결제 직전 마지막 선택</span><h2>이 {money(total)}원, 정말 쓸까요?</h2><p>어떤 선택이든 기록하면 다음 판단이 쉬워져요.</p><button className="defend-order" onClick={() => finishOrder('saved',total,`${cart[0]?.shopName} 가상 주문`)}>🛡️ 주문을 멈추고 참았다!</button><button className="buy-order" onClick={() => finishOrder('spent',total,`${cart[0]?.shopName} 가상 주문`)}>모의 결제 완료 · 결국 샀다</button></section></div>;
 
-  return <div className="page market-page"><MarketHeader title="가상 상점" back={undefined} cartCount={cart.reduce((s,i)=>s+i.quantity,0)} openCart={() => setStep('cart')} /><section className="market-hero"><span>오늘도 선택의 주인은 나</span><h1>먹고 싶은 마음,<br/>여기서 먼저 담아봐요.</h1><p>결제는 없고, 선택의 기록만 남아요.</p><div>🛵</div></section><div className="shop-filters">{shopCategories.map(c => <button className={filter===c?'selected':''} onClick={() => setFilter(c)} key={c}>{c}</button>)}</div><section className="shop-list">{filtered.map(s => <button className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p></div><i>›</i></button>)}</section></div>;
+  return <div className="page market-page delivery-home">
+    <header className="delivery-home-head"><div><small>배달 받을 곳</small><button>우리 집 · 역삼동 123-4⌄</button></div><button className="head-cart" onClick={() => setStep('cart')} aria-label="장바구니">🛒{cart.length > 0 && <i>{cart.reduce((s,i)=>s+i.quantity,0)}</i>}</button></header>
+    <label className="food-search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="음식이나 가게를 검색해보세요"/><button onClick={()=>setQuery('')} aria-label="검색어 지우기">{query?'×':'⌘'}</button></label>
+    <section className="category-bubbles">{shopCategories.slice(1).map(c => { const icon=shops.find(s=>s.category===c)?.icon ?? '🍽️'; return <button className={filter===c?'selected':''} onClick={()=>setFilter(filter===c?'전체':c)} key={c}><span>{icon}</span><b>{c}</b></button>})}</section>
+    <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
+    <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button>추천순⌄</button></div>
+    <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p><mark>{s.menus.slice(0,2).map(m=>m.name).join(' · ')}</mark></div><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
+  </div>;
 }
 
 function MarketHeader({ title, back, cartCount, openCart }: { title: string; back?: () => void; cartCount: number; openCart: () => void }) { return <header className="market-header">{back ? <button onClick={back} aria-label="뒤로">‹</button> : <span className="mini-logo">ㅊ</span>}<h1>{title}</h1><button className="cart-icon" onClick={openCart} aria-label="장바구니">🛒{cartCount > 0 && <i>{cartCount}</i>}</button></header>; }
