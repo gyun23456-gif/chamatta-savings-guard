@@ -8,6 +8,9 @@ const one=(title:string,...choices:Choice[]):Group=>({title,required:true,choice
 const many=(title:string,...choices:Choice[]):Group=>({title,multiple:true,choices});
 
 export function optionProfileForName(name:string):{id:string;groups:Group[]}{
+  if(/무알코올/.test(name))return{id:'beverage',groups:[one('음료 상태',choice('차갑게'),choice('시원하지 않게')),many('추가 요청',choice('얼음컵',1000,0),choice('빨대 받기'))]};
+  if(/소주|맥주|하이볼/.test(name))return{id:'adult-drink',groups:[one('음료 상태',choice('차갑게'),choice('시원하지 않게')),many('함께 주문',choice('얼음컵',1000,0),choice('레몬 슬라이스',500,5))]};
+  if(/콜라|생수|식혜|유산균 음료|밀크티|리치 에이드/.test(name))return{id:'beverage',groups:[one('음료 상태',choice('차갑게'),choice('얼음 없이')),many('추가 요청',choice('얼음컵',1000,0),choice('빨대 받기'))]};
   if(/분식.*세트/.test(name))return{id:'snack-set',groups:[one('떡볶이 맵기',choice('순한맛'),choice('보통맛'),choice('매운맛')),one('세트 인원',choice('기본 구성'),choice('1인 추가',7000,650)),many('세트 추가',choice('모짜렐라 치즈',2500,220),choice('김말이 3개',2500,210),choice('어묵 국물',1000,40))]};
   if(/닭발/.test(name))return{id:'spicy-chicken-feet',groups:[one('맵기 선택',choice('덜 맵게'),choice('보통맛'),choice('아주 맵게')),one('조리 선택',choice('직화구이'),choice('국물 닭발',1000,80)),many('함께 먹기',choice('날치알 주먹밥',4500,430),choice('계란찜',4000,180),choice('누룽지탕',3500,210),choice('치즈 추가',2500,220))]};
   if(/오돌뼈/.test(name))return{id:'spicy-cartilage',groups:[one('맵기 선택',choice('덜 맵게'),choice('보통맛'),choice('아주 맵게')),one('구성 선택',choice('오돌뼈만'),choice('주먹밥 세트',4000,430)),many('추가 메뉴',choice('계란찜',4000,180),choice('치즈 추가',2500,220),choice('마요 소스',500,90))]};
