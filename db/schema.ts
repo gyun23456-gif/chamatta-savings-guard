@@ -54,6 +54,7 @@ export const userDataSchema = [
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, category TEXT NOT NULL,
     amount INTEGER NOT NULL CHECK(amount > 0), memo TEXT NOT NULL,
     result TEXT NOT NULL CHECK(result IN ('saved','spent')), record_date TEXT NOT NULL,
+    calories INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_savings_records_user_date ON savings_records(user_id, record_date DESC)`,
