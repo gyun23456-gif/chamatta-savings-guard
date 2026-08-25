@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import ProfileModal from './ProfileModal';
+import SavingsModal, { SavingsQueue } from './SavingsModal';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
@@ -68,6 +69,8 @@ export default function Home() {
   const [profileOpen,setProfileOpen]=useState(false);
   const [profile,setProfile]=useState<Profile>({authenticated:false});
   const [syncReady,setSyncReady]=useState(false);
+  const [savings,setSavings]=useState<SavingsQueue>({account:null,pending:[],transferred:0});
+  const [savingsMode,setSavingsMode]=useState<'account'|'transfer'|null>(null);
   const [communityStories, setCommunityStories] = useState<Story[]>(demoStories);
   const [success, setSuccess] = useState<RecordItem | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -75,10 +78,12 @@ export default function Home() {
 
   useEffect(() => {
     try { const stored = localStorage.getItem('chamatta-data-v1'); if (stored) setData(JSON.parse(stored)); } catch { /* start clean */ }
+    try { const stored = localStorage.getItem('chamatta-savings-v1'); if(stored)setSavings(JSON.parse(stored)); } catch { /* device-only account starts empty */ }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
     setLoaded(true);
   }, []);
   useEffect(() => { if (loaded) localStorage.setItem('chamatta-data-v1', JSON.stringify(data)); }, [data, loaded]);
+  useEffect(()=>{if(loaded)localStorage.setItem('chamatta-savings-v1',JSON.stringify(savings))},[savings,loaded]);
   useEffect(() => { fetch('/api/stories').then(r=>r.ok?r.json():Promise.reject()).then(payload=>setCommunityStories([...(payload.pending??[]),...(payload.stories??[]),...demoStories])).catch(()=>setCommunityStories([...(data.stories??[]),...demoStories])); }, []);
   useEffect(()=>{fetch('/api/profile').then(r=>r.json()).then(setProfile).catch(()=>undefined)},[]);
   useEffect(()=>{if(!loaded||!profile.authenticated)return;fetch('/api/data').then(r=>r.ok?r.json():Promise.reject()).then(async cloud=>{if(cloud.hasData)setData({records:cloud.records??[],goals:cloud.goals??[]});else if(data.records.length||data.goals.length)await fetch('/api/data',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({records:data.records,goals:data.goals})});setSyncReady(true)}).catch(()=>setSyncReady(false))},[loaded,profile.authenticated]);
@@ -117,7 +122,7 @@ export default function Home() {
       {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} finishOrder={(result, total, memo) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey() }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
       {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
-      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} openProfile={()=>setProfileOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
+      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
         <NavButton label="홈" icon="⌂" active={tab === 'market'} onClick={() => setTab('market')} />
@@ -133,7 +138,8 @@ export default function Home() {
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       {adInquiryOpen && <AdInquiryModal onClose={() => setAdInquiryOpen(false)} />}
       {profileOpen && <ProfileModal profile={profile} onSaved={p=>{setProfile(p);setProfileOpen(false)}} onClose={()=>setProfileOpen(false)}/>} 
-      {success && <SuccessModal record={success} total={totalSaved} streak={streak} onClose={() => setSuccess(null)} />}
+      {savingsMode&&<SavingsModal mode={savingsMode} value={savings} onChange={setSavings} onClose={()=>setSavingsMode(null)}/>} 
+      {success && <SuccessModal record={success} total={totalSaved} streak={streak} onQueue={()=>{setSavings(v=>v.pending.some(p=>p.id===success.id)?v:{...v,pending:[...v.pending,{id:success.id,amount:success.amount,memo:success.memo||success.category,date:success.date}]});setSuccess(null);setSavingsMode(savings.account?'transfer':'account')}} onClose={() => setSuccess(null)} />}
     </main>
   );
 }
@@ -216,9 +222,10 @@ function StatsView({ records, savedAmount, rate }: { records: RecordItem[]; save
   </div>;
 }
 
-function GoalsView({ goals, totalSaved, profile, openProfile, openGoal, openAdmin, removeGoal }: { goals: Goal[]; totalSaved: number; profile:Profile; openProfile:()=>void; openGoal: () => void; openAdmin: () => void; removeGoal: (id: string) => void }) {
+function GoalsView({ goals, totalSaved, profile, savings, openSavings, openProfile, openGoal, openAdmin, removeGoal }: { goals: Goal[]; totalSaved: number; profile:Profile; savings:SavingsQueue; openSavings:(m:'account'|'transfer')=>void; openProfile:()=>void; openGoal: () => void; openAdmin: () => void; removeGoal: (id: string) => void }) {
   return <div className="page"><PageHeading eyebrow="돈의 목적지" title="목표" subtitle="안 쓴 돈을 내가 원하는 미래에 연결해요." />
     <button className="profile-entry" onClick={openProfile}><span>{profile.authenticated?'🙂':'🔐'}</span><div><b>{profile.authenticated?(profile.nickname||'닉네임을 정해주세요'):'ChatGPT로 로그인'}</b><small>{profile.authenticated?profile.email:'후기와 프로필을 안전하게 연결해요'}</small></div><i>›</i></button>
+    <section className="savings-wallet"><div><span>🏦</span><p><small>저축 대기함</small><b>{money(savings.pending.reduce((n,p)=>n+p.amount,0))}원</b><em>{savings.account?`${savings.account.bank} · ${savings.account.accountNumber.slice(-4)}`:'저축계좌를 설정해주세요'}</em></p></div><button onClick={()=>openSavings(savings.account?'transfer':'account')}>{savings.account?'저축하기':'계좌 설정'}</button><footer><span>직접 이체 완료</span><b>{money(savings.transferred)}원</b><button onClick={()=>openSavings('account')}>설정</button></footer></section>
     <button className="add-goal" onClick={openGoal}><span>＋</span><div><b>새 목표 만들기</b><small>목표는 여러 개 만들 수 있어요</small></div></button>
     <button className="admin-entry" onClick={openAdmin}><span>⚙️</span><div><b>운영자 센터</b><small>후기 승인 · 숨김 · 이벤트 선정</small></div><i>›</i></button>
     <section className="goal-stack">{goals.length ? goals.map((g, i) => { const p = Math.min(100, Math.round(totalSaved / g.amount * 100)); return <article className="full-goal" key={g.id}><button className="delete-goal" onClick={() => removeGoal(g.id)} aria-label={`${g.name} 삭제`}>×</button><div className="goal-emoji">{g.emoji}</div><span className="eyebrow">목표 {String(i + 1).padStart(2, '0')}</span><h2>{g.name}</h2><div className="goal-big"><b>{p}%</b><span>{money(totalSaved)}원 / {money(g.amount)}원</span></div><div className="progress"><i style={{ width: `${p}%` }} /></div><p>{p >= 100 ? '목표 달성! 이제 다음 목적지를 정해볼까요?' : `앞으로 ${money(Math.max(0, g.amount - totalSaved))}원만 더 지키면 도착해요.`}</p></article>; }) : <Empty icon="🏁" title="아직 정한 목표가 없어요" text="지키고 싶은 돈의 목적지를 만들어보세요." action="첫 목표 만들기" onAction={openGoal} />}</section>
@@ -271,4 +278,4 @@ function StoryModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (v: 
   return <ModalShell title="나의 도착 후기를 들려주세요" subtitle="당신의 경험이 누군가의 다음 선택을 도와요." onClose={onClose}><form className="story-form" onSubmit={submit}><div className="story-event-note"><span>🎉</span><p><b>이벤트 활용 준비 완료</b><br/>작성한 후기는 추후 ‘이달의 방어왕’ 후보로 활용할 수 있어요.</p></div><div className="story-two"><label><span>닉네임</span><input value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="예: 야식졸업생" required maxLength={16}/></label><label><span>걸린 기간</span><input value={period} onChange={e=>setPeriod(e.target.value)} placeholder="예: 5개월" maxLength={12}/></label></div><label><span>후기 제목</span><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="예: 참은 야식비로 제주도에 갔어요" required maxLength={40}/></label><label><span>달성한 목표</span><input value={goal} onChange={e=>setGoal(e.target.value)} placeholder="예: 제주도 여행" required maxLength={24}/></label><label className="amount-field"><span>모은 금액</span><div><input inputMode="numeric" value={amount} onChange={e=>setAmount(e.target.value.replace(/[^0-9]/g,''))} placeholder="0" required/><b>원</b></div></label><fieldset><legend>목표 태그</legend><div className="story-tags">{['여행','비상금','쇼핑','건강','취미'].map(t=><button type="button" className={tag===t?'selected':''} onClick={()=>setTag(t)} key={t}>#{t}</button>)}</div></fieldset><label><span>나의 이야기</span><textarea value={body} onChange={e=>setBody(e.target.value)} placeholder="어떻게 참았고, 목표를 이뤘을 때 어떤 기분이었는지 들려주세요." required maxLength={280}/><small>{body.length}/280</small></label><button className="submit-button" disabled={!nickname.trim()||!title.trim()||!body.trim()||!goal.trim()||!Number(amount)}>후기 등록하기</button></form></ModalShell>;
 }
 
-function SuccessModal({ record, total, streak, onClose }: { record: RecordItem; total: number; streak: number; onClose: () => void }) { return <div className="success-screen" role="dialog" aria-modal="true"><div className="confetti">✦ <i>●</i> ✦ <em>◆</em> ✦</div><div className="success-shield"><span>✓</span></div><span className="success-label">방어 성공</span><h2>{money(record.amount)}원</h2><p>{record.memo || record.category}의 유혹을 넘겼어요.<br/>오늘의 선택이 미래의 나를 만들어요.</p><div className="success-stats"><div><small>누적 지킨 돈</small><b>{money(total)}원</b></div><i/><div><small>연속 방어</small><b>🔥 {streak}일</b></div></div><button onClick={onClose}>좋아, 계속 지켜볼게!</button></div>; }
+function SuccessModal({ record, total, streak, onQueue, onClose }: { record: RecordItem; total: number; streak: number; onQueue:()=>void; onClose: () => void }) { return <div className="success-screen" role="dialog" aria-modal="true"><div className="confetti">✦ <i>●</i> ✦ <em>◆</em> ✦</div><div className="success-shield"><span>✓</span></div><span className="success-label">방어 성공</span><h2>{money(record.amount)}원</h2><p>{record.memo || record.category}의 유혹을 넘겼어요.<br/>오늘의 선택이 미래의 나를 만들어요.</p><div className="success-stats"><div><small>누적 지킨 돈</small><b>{money(total)}원</b></div><i/><div><small>연속 방어</small><b>🔥 {streak}일</b></div></div><button className="queue-saving" onClick={onQueue}>🏦 이 금액, 진짜 저축하기</button><button className="success-later" onClick={onClose}>나중에 할게요</button></div>; }
