@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.chamatta.savingsguard",
+      "sha256_cert_fingerprints": [
+        "A9:3E:BD:A4:AA:A8:1B:45:B5:9A:67:DC:0D:D8:C6:C6:D1:5A:3A:9F:E0:C1:57:1D:CC:F7:40:C3:59:88:50:09"
+      ]
+    }
+  }
+]

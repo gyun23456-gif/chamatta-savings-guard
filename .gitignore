@@ -19,6 +19,8 @@
 # misc
 .DS_Store
 *.pem
+*.keystore
+*.jks
 
 # debug
 npm-debug.log*
@@ -36,3 +38,4 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+/android-twa/
