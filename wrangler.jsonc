@@ -1,0 +1,31 @@
+// ChatGPT Sites 밖(본인 Cloudflare 계정)으로 이사할 때 쓰는 배포 설정.
+// 현재 라이브 사이트는 이 파일을 쓰지 않으며, 있어도 기존 배포에 영향이 없다.
+//
+// 이사 절차
+//   1) Cloudflare 계정 생성 (무료)
+//   2) npx wrangler d1 create chamatta-db   → 출력된 database_id 를 아래에 붙여넣기
+//   3) drizzle/*.sql 을 순서대로 실행해 표 생성
+//        npx wrangler d1 execute chamatta-db --remote --file drizzle/0000_stories.sql   (0001~0004 반복)
+//   4) ADMIN_USER_IDS 에 운영자 식별자를 넣기 (비워두면 운영자 센터는 아무에게도 안 보인다)
+//   5) pnpm build && npx wrangler deploy
+//
+// 로컬 확인은 계정 없이도 된다:  pnpm build && npx wrangler dev --local
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chamatta",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "dist/client" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chamatta-db",
+      // 2)에서 받은 실제 값으로 교체. local 전용 실행에서는 아무 값이나 무방.
+      "database_id": "local-dev"
+    }
+  ],
+  "vars": {
+    "ADMIN_USER_IDS": ""
+  }
+}
