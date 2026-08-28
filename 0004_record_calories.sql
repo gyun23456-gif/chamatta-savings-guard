@@ -1,0 +1,1 @@
+ALTER TABLE savings_records ADD COLUMN calories INTEGER NOT NULL DEFAULT 0;
