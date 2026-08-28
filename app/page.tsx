@@ -231,7 +231,7 @@ export default function Home() {
       {adInquiryOpen && <AdInquiryModal onClose={() => setAdInquiryOpen(false)} />}
       {profileOpen && <ProfileModal profile={profile} onSaved={p=>{setProfile(p);setProfileOpen(false)}} onClose={()=>setProfileOpen(false)}/>} 
       {energyOpen && energy && <EnergyModal energy={energy} onChange={updateEnergy} onClose={()=>setEnergyOpen(false)} onWriteReview={()=>{setEnergyOpen(false);setStoryOpen(true)}}/>}
-      {settingsOpen && <SettingsModal profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
+      {settingsOpen && <SettingsModal energy={energy} openEnergy={()=>{setSettingsOpen(false);setEnergyOpen(true)}} profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
       {savingsMode&&<SavingsModal mode={savingsMode} value={savings} onChange={setSavings} onClose={()=>setSavingsMode(null)}/>} 
       {onboarding && <Onboarding onDone={() => { try { localStorage.setItem('chamatta-onboarded-v1', '1'); } catch { /* 저장소를 못 쓰면 다음에 다시 보여준다 */ } setOnboarding(false); }} />}
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onQueue={()=>{setSavings(v=>v.pending.some(p=>p.id===success.id)?v:{...v,pending:[...v.pending,{id:success.id,amount:success.amount,memo:success.memo||success.category,date:success.date}]});setSuccess(null);setSavingsMode(savings.account?'transfer':'account')}} onClose={() => setSuccess(null)} />}

@@ -3,6 +3,9 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 
 type Profile={authenticated:boolean;nickname?:string;email?:string};
+type Theme='red'|'forest'|'orange';
+/** 설정에서 읽기만 하는 에너지 상태. 조작은 에너지 시트에서 한다. */
+type EnergyView={count:number;code:string;unlimited:boolean};
 type Backup={app:string;version:number;exportedAt:string;data:Record<string,unknown>};
 type Preview={backup:Backup;records:number;goals:number;nickname?:string};
 
@@ -26,8 +29,12 @@ const describe=(backup:Backup):Preview=>{
 };
 const DELETE_MAIL='mailto:gyun23456@gmail.com?subject=%5B%EC%B0%B8%EC%95%98%EB%8B%A4!%5D%20%EA%B3%84%EC%A0%95%C2%B7%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD&body=%EA%B0%80%EC%9E%85%ED%95%9C%20%EC%9D%B4%EB%A9%94%EC%9D%BC%3A%20%0A%EC%82%AD%EC%A0%9C%EB%A5%BC%20%EC%9B%90%ED%95%98%EB%8A%94%20%ED%95%AD%EB%AA%A9%3A%20%EA%B3%84%EC%A0%95%20%EC%A0%84%EC%B2%B4%20%EC%82%AD%EC%A0%9C%0A';
 
-export default function SettingsModal({profile,openProfile,onClose}:{profile:Profile;openProfile:()=>void;onClose:()=>void}){
-  const [theme,setTheme]=useState<'red'|'forest'>(()=>typeof window==='undefined'?'red':(localStorage.getItem('chamatta-theme')==='forest'?'forest':'red'));
+export default function SettingsModal({profile,openProfile,onClose,energy,openEnergy}:{energy:EnergyView|null;openEnergy:()=>void;profile:Profile;openProfile:()=>void;onClose:()=>void}){
+  const [theme,setTheme]=useState<Theme>(()=>{
+    if(typeof window==='undefined')return 'red';
+    const saved=localStorage.getItem('chamatta-theme');
+    return saved==='forest'||saved==='orange'?saved:'red';
+  });
   const [wipeStep,setWipeStep]=useState<0|1>(0);
   const [wiped,setWiped]=useState(false);
   const [notice,setNotice]=useState('');
@@ -99,7 +106,12 @@ export default function SettingsModal({profile,openProfile,onClose}:{profile:Pro
 
     <section className="settings-group"><h3>언어</h3><p>현재 한국어를 지원하고 있어요.</p><button className="settings-choice selected"><span>🇰🇷</span><b>한국어</b><i>✓</i></button><button className="settings-choice disabled" disabled><span>🌐</span><b>다른 언어</b><small>준비 중</small></button></section>
 
-    <section className="settings-group"><h3>테마</h3><p>앱의 대표 색상을 골라보세요.</p><div className="theme-grid"><button className={theme==='red'?'selected':''} onClick={()=>setTheme('red')}><span className="red-swatch"/><b>레드</b>{theme==='red'&&<i>✓</i>}</button><button className={theme==='forest'?'selected':''} onClick={()=>setTheme('forest')}><span className="forest-swatch"/><b>포레스트</b>{theme==='forest'&&<i>✓</i>}</button></div></section>
+    <section className="settings-group"><h3>테마</h3><p>앱의 대표 색상을 골라보세요.</p><div className="theme-grid"><button className={theme==='red'?'selected':''} onClick={()=>setTheme('red')}><span className="red-swatch"/><b>레드</b>{theme==='red'&&<i>✓</i>}</button><button className={theme==='orange'?'selected':''} onClick={()=>setTheme('orange')}><span className="orange-swatch"/><b>오렌지</b>{theme==='orange'&&<i>✓</i>}</button><button className={theme==='forest'?'selected':''} onClick={()=>setTheme('forest')}><span className="forest-swatch"/><b>포레스트</b>{theme==='forest'&&<i>✓</i>}</button></div></section>
+
+    <section className="settings-group"><h3>가상 주문 에너지</h3><p>가상 주문 1번에 에너지 3개를 씁니다. 앱을 켠 날마다 3개씩 지급돼요.</p>
+      <button className="settings-choice" onClick={openEnergy}><span>⚡</span><div><b>에너지 충전 · 추천 코드</b><small>{energy?(energy.unlimited?'무제한 이용 중':`현재 ${energy.count}개 · 내 코드 ${energy.code}`):'불러오는 중'}</small></div><i>›</i></button>
+      <button className="settings-choice disabled" disabled><span>∞</span><div><b>무제한 에너지 &amp; 광고 제거</b><small>{energy?.unlimited?'구매 완료':'미구매 · 앱 스토어 버전에서 준비 중'}</small></div></button>
+    </section>
 
     <section className="settings-group"><h3>기록 백업</h3><p>기록은 이 기기에만 저장돼요. 폰을 바꾸거나 앱을 다시 깔기 전에 꼭 내보내두세요.</p>
       <button className="settings-choice" onClick={exportBackup}><span>📤</span><div><b>백업 파일 내보내기</b><small>절약 기록·목표·프로필을 파일 하나로 저장</small></div><i>›</i></button>
