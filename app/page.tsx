@@ -6,6 +6,7 @@ import SavingsModal, { SavingsQueue } from './SavingsModal';
 import CustomMenuModal from './CustomMenuModal';
 import MenuOptionsModal, { optionProfileForName } from './MenuOptionsModal';
 import DeliveryJourney from './DeliveryJourney';
+import SettingsModal from './SettingsModal';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
@@ -95,6 +96,12 @@ const money = (n: number) => n.toLocaleString('ko-KR');
 const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const monthKey = () => dateKey().slice(0, 7);
 const getCategory = (id: string) => categories.find(c => c.id === id) ?? categories[6];
+const shopPhotoIndex = (shop: Shop) => {
+  const pools:Record<string,number[]>={한식:[0,5],치킨:[1],분식:[2],카페:[3,7],아시안:[4,6],야식:[5,1],기타:[7]};
+  const pool=pools[shop.category]??[0];
+  return pool[[...shop.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)%pool.length];
+};
+const foodPhotoStyle=(index:number)=>({'--photo-x':`${(index%4)*33.333}%`,'--photo-y':index<4?'0%':'100%'} as React.CSSProperties);
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('market');
@@ -106,6 +113,7 @@ export default function Home() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [adInquiryOpen, setAdInquiryOpen] = useState(false);
   const [profileOpen,setProfileOpen]=useState(false);
+  const [settingsOpen,setSettingsOpen]=useState(false);
   const [profile,setProfile]=useState<Profile>({authenticated:false});
   const [syncReady,setSyncReady]=useState(false);
   const [savings,setSavings]=useState<SavingsQueue>({account:null,pending:[],transferred:0});
@@ -158,7 +166,7 @@ export default function Home() {
       </header>}
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
-      {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
+      {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
       {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
@@ -177,6 +185,7 @@ export default function Home() {
       {adminOpen && <AdminPanel onClose={() => setAdminOpen(false)} />}
       {adInquiryOpen && <AdInquiryModal onClose={() => setAdInquiryOpen(false)} />}
       {profileOpen && <ProfileModal profile={profile} onSaved={p=>{setProfile(p);setProfileOpen(false)}} onClose={()=>setProfileOpen(false)}/>} 
+      {settingsOpen && <SettingsModal profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
       {savingsMode&&<SavingsModal mode={savingsMode} value={savings} onChange={setSavings} onClose={()=>setSavingsMode(null)}/>} 
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onQueue={()=>{setSavings(v=>v.pending.some(p=>p.id===success.id)?v:{...v,pending:[...v.pending,{id:success.id,amount:success.amount,memo:success.memo||success.category,date:success.date}]});setSuccess(null);setSavingsMode(savings.account?'transfer':'account')}} onClose={() => setSuccess(null)} />}
     </main>
@@ -203,7 +212,7 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
   </div>;
 }
 
-function MarketView({ cart, setCart, stories, openStory, openAdInquiry, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
+function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder }: { cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
   const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
   const [filter, setFilter] = useState('전체');
   const [query, setQuery] = useState('');
@@ -222,6 +231,7 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, finishOr
   const customShop:Shop={id:'my-menu-shop',name:'나만의 메뉴 상점',category:'기타',icon:'👩‍🍳',rating:5,delivery:0,time:'바로 체험',badge:'내가 등록',menus:customMenus};
   const allShops=customMenus.length?[customShop,...shops]:shops;
   const filtered = allShops.filter(s => (filter === '전체' || s.category === filter) && (!query.trim() || `${s.name} ${s.category} ${s.menus.map(m=>m.name).join(' ')}`.includes(query.trim())));
+  const popular = allShops.filter(s=>s.menus.length).slice(0,5).map((shop,index)=>({shop,menu:shop.menus[0],rank:index+1}));
   const itemTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const delivery = cart.length ? (allShops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
   const total = itemTotal + delivery;
@@ -237,14 +247,15 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, finishOr
   if (step === 'checkout') return <div className="page market-page"><MarketHeader title="모의 결제" back={() => setStep('cart')} cartCount={0} openCart={() => undefined} /><div className="simulation-banner"><span>i</span><p><b>실제 결제가 아니에요</b><br/>카드·계좌 정보는 입력하거나 저장하지 않습니다.</p></div><section className="checkout-card"><h2>주문 정보</h2><div><span>{cart[0]?.shopName}</span><b>{cart.reduce((s,i)=>s+i.quantity,0)}개 메뉴</b></div><div><span>예상 열량</span><b>약 {money(totalCalories)} kcal</b></div><div><span>결제 예정 금액</span><strong>{money(total)}원</strong></div></section><section className="payment-card"><h2>결제 수단 체험</h2>{['간편결제','신용·체크카드','현장 결제'].map(p => <button className={payMethod===p?'selected':''} onClick={() => setPayMethod(p)} key={p}><span>{p==='간편결제'?'⚡':p==='신용·체크카드'?'▣':'⌂'}</span><b>{p}</b><i>{payMethod===p?'●':'○'}</i></button>)}</section><section className="pace-card"><h2>마음을 식힐 시간을 골라요</h2>{['빠르게 정리','천천히 생각'].map(p=><button className={pace===p?'selected':''} key={p} onClick={()=>setPace(p)}><span>{p==='빠르게 정리'?'⚡':'🌿'}</span><div><b>{p}</b><small>{p==='빠르게 정리'?'짧은 가상 배달 체험':'조금 더 천천히 생각하기'}</small></div><i>{pace===p?'●':'○'}</i></button>)}</section><section className="decision-zone"><span>결제 직전 마지막 선택</span><h2>이 {money(total)}원, 정말 쓸까요?</h2><p>어떤 선택이든 기록하면 다음 판단이 쉬워져요.</p><button className="defend-order" onClick={() => setJourney({total,calories:totalCalories,memo:`${cart[0]?.shopName} 가상 주문`})}>🛡️ 가상 배달을 시작하고 참기</button><button className="buy-order" onClick={() => finishOrder('spent',total,`${cart[0]?.shopName} 가상 주문`,totalCalories)}>모의 결제 완료 · 결국 샀다</button></section></div>;
 
   return <div className="page market-page delivery-home">
-    <header className="delivery-home-head"><div><small>배달 받을 곳</small><button>우리 집 · 역삼동 123-4⌄</button></div><button className="head-cart" onClick={() => setStep('cart')} aria-label="장바구니">🛒{cart.length > 0 && <i>{cart.reduce((s,i)=>s+i.quantity,0)}</i>}</button></header>
-    <label className="food-search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="음식이나 가게를 검색해보세요"/><button onClick={()=>setQuery('')} aria-label="검색어 지우기">{query?'×':'⌘'}</button></label>
+    <div className="market-sticky"><header className="delivery-home-head"><div><small>오늘의 방어 훈련</small><button>가상 배달 상점 둘러보기</button></div><button className="head-settings" onClick={openSettings} aria-label="설정">⚙</button><button className="head-cart" onClick={() => setStep('cart')} aria-label="장바구니">🛒{cart.length > 0 && <i>{cart.reduce((s,i)=>s+i.quantity,0)}</i>}</button></header>
+    <label className="food-search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="상점이나 메뉴를 검색해보세요"/><button onClick={()=>setQuery('')} aria-label="검색어 지우기">{query?'×':'↵'}</button></label></div>
     <section className="category-bubbles">{shopCategories.slice(1).map(c => { const icon=shops.find(s=>s.category===c)?.icon ?? '🍽️'; return <button className={filter===c?'selected':''} onClick={()=>setFilter(filter===c?'전체':c)} key={c}><span>{icon}</span><b>{c}</b></button>})}</section>
     <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
+    <section className="popular-section"><div className="popular-heading"><div><span>TODAY&apos;S POPULAR</span><h2>지금 많이 참는 메뉴</h2><p>가상 주문에서 가장 자주 선택된 메뉴예요.</p></div></div><div className="popular-scroll">{popular.map(({shop,menu,rank})=><button key={shop.id} onClick={()=>{setSelected(shop);setStep('shop')}}><span className="popular-photo" style={foodPhotoStyle(shopPhotoIndex(shop))}><i>{rank}</i></span><b>{menu.name}</b><small>{shop.name}</small><em>{money(menu.price)}원</em></button>)}</div></section>
     <section className="story-section"><div className="story-heading"><div><span>GOAL STORIES</span><h2>참은 사람들의 도착 후기</h2><p>진짜 목표를 이룬 순간을 나눠요.</p></div><button onClick={openStory}>후기 쓰기</button></div><div className="story-scroll">{stories.slice(0,4).map(s => <article className={s.featured?'story-card featured':'story-card'} key={s.id}><div><span>{s.status==='pending'?'⏳ 승인 대기':s.featured?'🏆 이달의 방어왕':`#${s.tag}`}</span><small>{s.createdAt}</small></div><h3>{s.title}</h3><p>“{s.body}”</p><footer><b>{s.nickname}</b><span>{s.goal} · {money(s.amount)}원 · {s.period}</span></footer></article>)}</div></section>
     <button className="sponsor-card" onMouseEnter={()=>campaign&&fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'view'})})} onClick={()=>{if(campaign){fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'click'})});window.open(campaign.linkUrl,'_blank','noopener,noreferrer')}else openAdInquiry();}}><span><em>{campaign?.label??'AD · 제휴 예시'}</em><b>{campaign?.title??'목표를 응원하는 브랜드 자리'}</b><small>{campaign?.description??'참았다!와 함께할 파트너를 기다립니다.'}</small></span><i>{campaign?'자세히 ›':'광고 문의 ›'}</i></button>
     <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button className="add-custom-menu" onClick={()=>setCustomMenuOpen(true)}>＋ 내 메뉴</button></div>
-    <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><span className="shop-thumb">{s.icon}<em>{s.badge}</em></span><div><small>{s.category} · {s.time}</small><h2>{s.name}</h2><p><b>★ {s.rating}</b> · 배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</p><mark>{s.menus.slice(0,2).map(m=>m.name).join(' · ')}</mark></div><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
+    <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card photo-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><div className="shop-photo" style={foodPhotoStyle(shopPhotoIndex(s))}><em>{s.badge}</em><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></div><div className="shop-card-copy"><div><h2>{s.name}</h2><strong>{s.time}</strong></div><p><b>★ {s.rating}</b> · 리뷰 {money(Math.round(s.rating*317))}개</p><footer><span>{s.category}</span><small>배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</small></footer></div></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
     {customMenuOpen&&<CustomMenuModal onClose={()=>setCustomMenuOpen(false)} onAdd={menu=>{setCustomMenus(v=>[menu,...v]);setCustomMenuOpen(false);setFilter('전체')}}/>}
   </div>;
 }
