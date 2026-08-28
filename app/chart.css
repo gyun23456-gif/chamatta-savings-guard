@@ -1,0 +1,114 @@
+/* 리포트: 오늘/누적 요약과 날짜별 막대 그래프 */
+
+.savings-report { margin-top: 18px; }
+
+.report-heading {
+  font-size: 16px;
+  letter-spacing: -.5px;
+  margin: 22px 2px 11px;
+}
+.savings-report > .report-heading:first-child { margin-top: 0; }
+
+.report-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.report-pair article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 17px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.report-pair small { font-size: 10px; color: var(--muted); }
+.report-pair b { font-size: 21px; letter-spacing: -1px; color: var(--green); }
+.report-pair .kcal b { color: #2f8a5b; }
+
+.chart-toggle {
+  width: 100%;
+  margin-top: 15px;
+  padding: 17px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  color: var(--ink);
+}
+.chart-toggle div { display: flex; flex-direction: column; gap: 5px; }
+.chart-toggle b { font-size: 14px; }
+.chart-toggle small { font-size: 10px; color: var(--muted); }
+.chart-toggle i {
+  font-style: normal;
+  font-size: 19px;
+  color: var(--green);
+  transform: rotate(180deg);
+  transition: transform .2s;
+}
+.chart-toggle i.open { transform: rotate(0deg); }
+
+.chart {
+  margin-top: 11px;
+  padding: 18px 16px 14px;
+  background: #fdf6f4;
+  border-radius: 22px;
+}
+.chart-kcal { background: #f3f8f4; }
+
+.chart > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.chart > header b { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.chart > header i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.chart-kcal > header i { background: #2f8a5b; }
+.chart > header span { font-size: 10px; color: var(--muted); }
+.chart > header strong {
+  margin-left: 5px;
+  font-size: 11px;
+  color: var(--ink);
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+
+.chart-bars {
+  height: 104px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: end;
+  gap: 6px;
+}
+.chart-bar { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; }
+.chart-bar em {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 800;
+  color: var(--green);
+  white-space: nowrap;
+}
+.chart-kcal .chart-bar em { color: #2f8a5b; }
+.chart-bar i {
+  display: block;
+  width: 100%;
+  max-width: 26px;
+  border-radius: 7px 7px 3px 3px;
+  background: linear-gradient(180deg, var(--green2), var(--green));
+  transition: height .35s ease;
+}
+.chart-kcal .chart-bar i { background: linear-gradient(180deg, #56b184, #2f8a5b); }
+/* 기록이 없는 날도 자리는 보여준다. */
+.chart-bar i.is-empty { background: #e7dcd9; }
+.chart-kcal .chart-bar i.is-empty { background: #dfe8e1; }
+
+.chart-axis {
+  margin-top: 9px;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.chart-axis small { font-size: 9px; color: var(--muted); text-align: center; }

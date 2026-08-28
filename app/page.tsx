@@ -8,6 +8,7 @@ import MenuOptionsModal, { optionProfileForName } from './MenuOptionsModal';
 import DeliveryJourney from './DeliveryJourney';
 import SettingsModal from './SettingsModal';
 import EnergyModal from './EnergyModal';
+import SavingsChart from './SavingsChart';
 import { Energy, REVIEW_BONUS, canOrder, earn, loadEnergy, saveEnergy, spend } from './energy';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
@@ -212,7 +213,7 @@ export default function Home() {
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
       {tab === 'market' && <MarketView energy={energy} spendEnergy={()=>{ if(energy) updateEnergy(spend(energy)); }} openEnergy={()=>setEnergyOpen(true)} cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} goStats={() => setTab('stats')} />}
-      {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} totalSaved={totalSaved} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} goHistory={() => setTab('history')} />}
+      {tab === 'stats' && <StatsView allRecords={data.records} records={monthRecords} savedAmount={monthSaved} rate={defenseRate} totalSaved={totalSaved} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} goHistory={() => setTab('history')} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} isAdmin={isAdmin} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openSettings={()=>setSettingsOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
@@ -359,7 +360,7 @@ function HistoryView({ records, selectedDate, setSelectedDate, removeRecord, goS
   </div>;
 }
 
-function StatsView({ records, savedAmount, rate, totalSaved, savings, openSavings, goHistory }: { records: RecordItem[]; savedAmount: number; rate: number; totalSaved: number; savings: SavingsQueue; openSavings: (m:'account'|'transfer')=>void; goHistory: () => void }) {
+function StatsView({ records, allRecords, savedAmount, rate, totalSaved, savings, openSavings, goHistory }: { allRecords: RecordItem[]; records: RecordItem[]; savedAmount: number; rate: number; totalSaved: number; savings: SavingsQueue; openSavings: (m:'account'|'transfer')=>void; goHistory: () => void }) {
   const success = records.filter(r => r.result === 'saved').length; const failed = records.length - success;
   const pendingTotal = savings.pending.reduce((sum, p) => sum + p.amount, 0);
   // 지킨 돈 중 실제로 은행에 옮긴 비율. 두 금액은 더하는 값이 아니라 포함 관계다.
@@ -369,6 +370,7 @@ function StatsView({ records, savedAmount, rate, totalSaved, savings, openSaving
   return <div className="page"><PageHeading eyebrow={`${new Date().getMonth() + 1}월 리포트`} title="나의 방어력" subtitle="참은 선택이 어떤 변화를 만들었는지 확인해요." />
     <section className="stat-hero"><div className="rate-ring" style={{ '--rate': `${rate * 3.6}deg` } as React.CSSProperties}><span><b>{rate}%</b><small>방어율</small></span></div><div><span>이번 달 지킨 돈</span><h2>{money(savedAmount)}원</h2><p>{records.length ? `${records.length}번의 유혹 중 ${success}번을 지켰어요.` : '기록을 시작하면 분석이 쌓여요.'}</p></div></section>
     <div className="score-grid"><article><span>✓</span><div><small>참았다</small><b>{success}회</b></div></article><article className="lost"><span>↘</span><div><small>결국 샀다</small><b>{failed}회</b></div></article></div>
+    <SavingsChart records={allRecords} />
     <section className="section-block"><div className="section-title"><h2>실제 저축 전환</h2></div>
       <div className="transfer-card">
         <div className="transfer-top"><div><small>지금까지 지킨 돈</small><b>{money(totalSaved)}원</b></div><div className="right"><small>은행으로 옮긴 돈</small><b>{money(savings.transferred)}원</b></div></div>
