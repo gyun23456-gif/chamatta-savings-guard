@@ -12,6 +12,7 @@ import { enContent, jaContent, zhContent } from './locales-content';
 import { enMenu, jaMenu, zhMenu } from './locales-menu';
 import { enOptions, jaOptions, zhOptions } from './locales-options';
 import { enDesc, jaDesc, zhDesc } from './locales-desc';
+import { enPrivacy } from './locales-privacy';
 
 export type Lang = 'ko' | 'en' | 'ja' | 'zh';
 
@@ -290,7 +291,7 @@ const zh: Dict = {
 };
 
 export const DICT: Record<Exclude<Lang, 'ko'>, Dict> = {
-  en: { ...en, ...enContent, ...enMenu, ...enOptions, ...enDesc },
+  en: { ...en, ...enContent, ...enMenu, ...enOptions, ...enDesc, ...enPrivacy },
   ja: { ...ja, ...jaContent, ...jaMenu, ...jaOptions, ...jaDesc },
   zh: { ...zh, ...zhContent, ...zhMenu, ...zhOptions, ...zhDesc },
 };
