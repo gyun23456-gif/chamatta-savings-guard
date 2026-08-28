@@ -76,7 +76,7 @@ const shopMenuOverrides:Record<string,MenuItem[]>={
   'late-burger':[
     {id:'bg1',name:'클래식 치즈 버거',description:'소고기 패티와 체더치즈',price:7900,icon:'🍔'},{id:'bg2',name:'더블 치즈 버거',description:'두 장의 패티와 진한 치즈',price:10900,icon:'🍔'},{id:'bg3',name:'베이컨 에그 버거',description:'베이컨과 계란을 더한 든든한 버거',price:9900,icon:'🍔'},{id:'bg4',name:'매콤 치킨 버거',description:'바삭한 닭다리살과 매콤 소스',price:8500,icon:'🍔'},{id:'bg5',name:'새우 버거',description:'통새우살 패티와 타르타르 소스',price:8500,icon:'🍤'},{id:'bg6',name:'머시룸 버거',description:'버섯과 양파를 볶아 올린 버거',price:9500,icon:'🍄'},{id:'bg7',name:'갈릭 감자튀김',description:'마늘 향 가득 바삭한 감자',price:5900,icon:'🍟'},{id:'bg8',name:'어니언링 8개',description:'달큰한 양파를 바삭하게 튀겨서',price:4500,icon:'🧅'},{id:'bg9',name:'치킨 너겟 6개',description:'한입 크기의 바삭한 치킨 너겟',price:4500,icon:'🍗'},{id:'bg10',name:'제로 콜라',description:'깔끔한 제로 탄산음료',price:2000,icon:'🥤'}]
 };
-shops.forEach(shop=>{const library=shopMenuOverrides[shop.id]??[...(menuLibrary[shop.category]??[]),...(menuSupplement[shop.category]??[])];const combined=shopMenuOverrides[shop.id]||shop.category==='치킨'?library:[...shop.menus,...library.map(x=>({...x,id:`${shop.id}-${x.id}`}))];shop.menus=[...new Map(combined.map(menu=>[menu.name,menu])).values()].slice(0,10)});
+shops.forEach(shop=>{const library=shopMenuOverrides[shop.id]??[...(menuLibrary[shop.category]??[]),...(menuSupplement[shop.category]??[])];const combined=shopMenuOverrides[shop.id]?library:[...shop.menus,...library.map(x=>({...x,id:`${shop.id}-${x.id}`}))];shop.menus=[...new Map(combined.map(menu=>[menu.name,menu])).values()].slice(0,10)});
 const beverageMenus:Record<string,MenuItem[]>={
   한식:[{id:'drink-sikhye',name:'수제 식혜',description:'은은하게 달콤한 전통 음료',price:3000,icon:'🥤',section:'음료'},{id:'drink-cola',name:'콜라 500ml',description:'시원한 탄산음료',price:2500,icon:'🥤',section:'음료'},{id:'drink-zero',name:'제로 콜라 500ml',description:'당류 없이 깔끔한 탄산',price:2500,icon:'🥤',section:'음료'}],
   분식:[{id:'drink-coolpis',name:'복숭아 유산균 음료',description:'매운맛을 달래는 달콤한 음료',price:2000,icon:'🧃',section:'음료'},{id:'drink-cola',name:'콜라 500ml',description:'시원한 탄산음료',price:2500,icon:'🥤',section:'음료'},{id:'drink-zero',name:'제로 콜라 500ml',description:'당류 없이 깔끔한 탄산',price:2500,icon:'🥤',section:'음료'}],
@@ -96,15 +96,33 @@ const money = (n: number) => n.toLocaleString('ko-KR');
 const dateKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const monthKey = () => dateKey().slice(0, 7);
 const getCategory = (id: string) => categories.find(c => c.id === id) ?? categories[6];
-const shopPhotoIndex = (shop: Shop) => {
-  const pools:Record<string,number[]>={한식:[0,5],치킨:[1],분식:[2],카페:[3,7],아시안:[4,6],야식:[5,1],기타:[7]};
-  const pool=pools[shop.category]??[0];
-  return pool[[...shop.id].reduce((sum,ch)=>sum+ch.charCodeAt(0),0)%pool.length];
+// 스프라이트 한 장에 음식 사진 20칸(5열 4행)이 들어 있다. 칸 번호로 잘라 쓴다.
+// 0 김치찌개 / 1 소불고기 / 2 비빔밥 / 3 순두부 / 4 후라이드
+// 5 양념치킨 / 6 순살+치즈볼 / 7 국물떡볶이 / 8 로제떡볶이+순대 / 9 김밥+어묵탕
+// 10 아메리카노+크루아상 / 11 라테+치즈케이크 / 12 딸기케이크 / 13 쌀국수 / 14 팟타이
+// 15 마라탕 / 16 보쌈 / 17 닭발+주먹밥 / 18 피자 / 19 버거+감자튀김
+const PHOTO_COLUMNS = 5;
+const PHOTO_ROWS = 4;
+const PHOTO_COUNT = PHOTO_COLUMNS * PHOTO_ROWS;
+const photoPools: Record<string, number[]> = { 한식:[0,1,2,3], 치킨:[4,5,6], 분식:[7,8,9], 카페:[10,11,12], 아시안:[13,14,15], 야식:[16,17,18,19], 기타:[19,10,7] };
+const hashOf = (text: string) => [...text].reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+const shopPhotoIndex = (shop: Shop) => { const pool = photoPools[shop.category] ?? [0]; return pool[hashOf(shop.id) % pool.length]; };
+// 대표 사진 1장 + 곁들임 사진 2장. 반드시 같은 카테고리 사진만 쓴다.
+// 사진 수가 모자라면 다른 음식을 끌어오지 않고, 같은 사진을 확대해서 다른 컷처럼 보이게 한다.
+const shopPhotoSet = (shop: Shop): { index: number; zoom: number }[] => {
+  const pool = photoPools[shop.category] ?? [0];
+  const seed = hashOf(shop.id);
+  return [0, 1, 2].map(slot => {
+    const index = pool[(seed + slot) % pool.length];
+    const repeated = slot > 0 && pool.length <= slot;
+    return { index, zoom: repeated ? slot : 0 };
+  });
 };
-const foodPhotoStyle=(index:number)=>({'--photo-x':`${(index%4)*33.333}%`,'--photo-y':index<4?'0%':'100%'} as React.CSSProperties);
+const foodPhotoStyle=(index:number)=>({'--photo-x':`${(index%PHOTO_COLUMNS)*(100/(PHOTO_COLUMNS-1))}%`,'--photo-y':`${Math.floor(index/PHOTO_COLUMNS)*(100/(PHOTO_ROWS-1))}%`} as React.CSSProperties);
+const reviewCount = (shop: Shop) => Math.round(shop.rating * 317) + (hashOf(shop.id) % 900);
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>('market');
+  const [tab, setTab] = useState<Tab>('home');
   const [data, setData] = useState<AppData>(emptyData);
   const [loaded, setLoaded] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
@@ -122,13 +140,17 @@ export default function Home() {
   const [success, setSuccess] = useState<RecordItem | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [historyDate, setHistoryDate] = useState(dateKey());
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [onboarding, setOnboarding] = useState(false);
 
   useEffect(() => {
     try { const stored = localStorage.getItem('chamatta-data-v1'); if (stored) setData(JSON.parse(stored)); } catch { /* start clean */ }
     try { const stored = localStorage.getItem('chamatta-savings-v1'); if(stored)setSavings(JSON.parse(stored)); } catch { /* device-only account starts empty */ }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    try { if (!localStorage.getItem('chamatta-onboarded-v1')) setOnboarding(true); } catch { /* 저장소를 못 쓰면 건너뛴다 */ }
     setLoaded(true);
   }, []);
+  useEffect(() => { fetch('/api/admin/stories').then(r => { if (r.ok) setIsAdmin(true); }).catch(() => undefined); }, []);
   useEffect(() => { if (loaded) localStorage.setItem('chamatta-data-v1', JSON.stringify(data)); }, [data, loaded]);
   useEffect(()=>{if(loaded)localStorage.setItem('chamatta-savings-v1',JSON.stringify(savings))},[savings,loaded]);
   useEffect(() => { fetch('/api/stories').then(r=>r.ok?r.json():Promise.reject()).then(payload=>setCommunityStories([...(payload.pending??[]),...(payload.stories??[]),...demoStories])).catch(()=>setCommunityStories([...(data.stories??[]),...demoStories])); }, []);
@@ -167,15 +189,15 @@ export default function Home() {
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
       {tab === 'market' && <MarketView cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
-      {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} />}
-      {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} />}
-      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
+      {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} goStats={() => setTab('stats')} />}
+      {tab === 'stats' && <StatsView records={monthRecords} savedAmount={monthSaved} rate={defenseRate} totalSaved={totalSaved} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} goHistory={() => setTab('history')} />}
+      {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} isAdmin={isAdmin} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openSettings={()=>setSettingsOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
-        <NavButton label="홈" icon="⌂" active={tab === 'market'} onClick={() => setTab('market')} />
-        <NavButton label="주문" icon="◷" active={tab === 'history'} onClick={() => setTab('history')} />
+        <NavButton label="홈" icon="⌂" active={tab === 'home'} onClick={() => setTab('home')} />
+        <NavButton label="상점" icon="⊞" active={tab === 'market'} onClick={() => setTab('market')} />
         <button className="nav-action" onClick={() => setRecordOpen(true)} aria-label="새 기록"><span>＋</span></button>
-        <NavButton label="리포트" icon="▥" active={tab === 'stats' || tab === 'home'} onClick={() => setTab('stats')} />
+        <NavButton label="리포트" icon="▥" active={tab === 'stats' || tab === 'history'} onClick={() => setTab('stats')} />
         <NavButton label="마이" icon="◇" active={tab === 'goals'} onClick={() => setTab('goals')} />
       </nav>
 
@@ -187,9 +209,34 @@ export default function Home() {
       {profileOpen && <ProfileModal profile={profile} onSaved={p=>{setProfile(p);setProfileOpen(false)}} onClose={()=>setProfileOpen(false)}/>} 
       {settingsOpen && <SettingsModal profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
       {savingsMode&&<SavingsModal mode={savingsMode} value={savings} onChange={setSavings} onClose={()=>setSavingsMode(null)}/>} 
+      {onboarding && <Onboarding onDone={() => { try { localStorage.setItem('chamatta-onboarded-v1', '1'); } catch { /* 저장소를 못 쓰면 다음에 다시 보여준다 */ } setOnboarding(false); }} />}
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onQueue={()=>{setSavings(v=>v.pending.some(p=>p.id===success.id)?v:{...v,pending:[...v.pending,{id:success.id,amount:success.amount,memo:success.memo||success.category,date:success.date}]});setSuccess(null);setSavingsMode(savings.account?'transfer':'account')}} onClose={() => setSuccess(null)} />}
     </main>
   );
+}
+
+const onboardingSteps = [
+  { icon: '🛒', title: '사고 싶은 걸 장바구니에 담아요', text: '가상 상점에서 진짜 배달앱처럼 메뉴를 고릅니다. 상점·메뉴·별점은 모두 만들어낸 가상 정보예요.' },
+  { icon: '🛡️', title: '결제 직전에 한 번 더 생각해요', text: '“가상 배달”을 시작하면 마음이 식는 동안 배달 여정이 진행돼요. 실제 결제도, 실제 배달도 일어나지 않습니다.' },
+  { icon: '🏦', title: '참은 금액이 내 저축이 돼요', text: '지킨 돈은 기록·통계·목표로 쌓입니다. 실제 이체는 사용자가 직접 은행 앱에서 진행해요.' },
+];
+
+function Onboarding({ onDone }: { onDone: () => void }) {
+  const [index, setIndex] = useState(0);
+  const last = index === onboardingSteps.length - 1;
+  const step = onboardingSteps[index];
+  return <div className="onboarding" role="dialog" aria-modal="true" aria-label="참았다! 사용 안내">
+    <button className="onboarding-skip" onClick={onDone}>건너뛰기</button>
+    <div className="onboarding-body">
+      <span className="onboarding-icon">{step.icon}</span>
+      <span className="eyebrow">참았다! 사용법 {index + 1}/{onboardingSteps.length}</span>
+      <h2>{step.title}</h2>
+      <p>{step.text}</p>
+    </div>
+    <div className="onboarding-dots">{onboardingSteps.map((s, i) => <i key={s.title} className={i === index ? 'active' : ''} />)}</div>
+    <div className="onboarding-note">이 앱은 실제 음식 주문·배달·결제 서비스가 아닙니다.</div>
+    <button className="onboarding-next" onClick={() => last ? onDone() : setIndex(i => i + 1)}>{last ? '시작하기' : '다음'}</button>
+  </div>;
 }
 
 function NavButton({ label, icon, active, onClick }: { label: string; icon: string; active: boolean; onClick: () => void }) { return <button className={active ? 'active' : ''} onClick={onClick}><span>{icon}</span>{label}</button>; }
@@ -231,6 +278,7 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
   const customShop:Shop={id:'my-menu-shop',name:'나만의 메뉴 상점',category:'기타',icon:'👩‍🍳',rating:5,delivery:0,time:'바로 체험',badge:'내가 등록',menus:customMenus};
   const allShops=customMenus.length?[customShop,...shops]:shops;
   const filtered = allShops.filter(s => (filter === '전체' || s.category === filter) && (!query.trim() || `${s.name} ${s.category} ${s.menus.map(m=>m.name).join(' ')}`.includes(query.trim())));
+  const menuCount = allShops.reduce((sum, s) => sum + s.menus.length, 0);
   const popular = allShops.filter(s=>s.menus.length).slice(0,5).map((shop,index)=>({shop,menu:shop.menus[0],rank:index+1}));
   const itemTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const delivery = cart.length ? (allShops.find(s => s.id === cart[0].shopId)?.delivery ?? 0) : 0;
@@ -239,30 +287,41 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
   const add = (menu: MenuItem, shop: Shop) => setCart(prev => { const sameShop = prev.filter(i => i.shopId === shop.id); const found = sameShop.find(i => i.id === menu.id); return found ? sameShop.map(i => i.id === menu.id ? {...i,quantity:i.quantity+1}:i) : [...sameShop,{...menu,quantity:1,shopId:shop.id,shopName:shop.name}]; });
   const quantity = (id: string, delta: number) => setCart(prev => prev.map(i => i.id === id ? {...i,quantity:i.quantity+delta}:i).filter(i => i.quantity > 0));
 
-  if (journey) return <DeliveryJourney amount={journey.total} calories={journey.calories} pace={pace} onComplete={()=>{finishOrder('saved',journey.total,journey.memo,journey.calories);setCart([]);setJourney(null)}} onCancel={()=>setJourney(null)}/>;
+  if (journey) return <DeliveryJourney amount={journey.total} calories={journey.calories} pace={pace} onComplete={()=>{finishOrder('saved',journey.total,journey.memo,journey.calories);setCart([]);setJourney(null);setSelected(null);setStep('list')}} onCancel={()=>setJourney(null)}/>;
   if (step === 'shop' && selected) return <div className="page market-page"><MarketHeader title={selected.name} back={() => setStep('list')} cartCount={cart.reduce((s,i)=>s+i.quantity,0)} openCart={() => setStep('cart')} /><section className="shop-hero"><span>{selected.icon}</span><div><small>{selected.category} · {selected.time}</small><h1>{selected.name}</h1><p>★ {selected.rating} · 배달비 {selected.delivery ? `${money(selected.delivery)}원` : '무료'}</p></div></section><div className="shop-notice">이곳의 상점과 주문은 모두 가상 체험입니다.</div><section className="menu-list"><h2>대표 메뉴</h2>{selected.menus.map((m,i) => <Fragment key={m.id}>{m.section&&selected.menus.findIndex(x=>x.section===m.section)===i&&<div className="menu-section-title"><span>🥤</span><div><h2>{m.section}</h2><small>주류는 성인용 가상 메뉴이며 실제 판매·결제되지 않아요.</small></div></div>}<article className="menu-card" data-option-profile={optionProfileForName(m.name).id}><div className="menu-copy"><h3>{m.name}</h3><p>{m.description}</p><small>🔥 약 {m.calories??Math.round(m.price/14)} kcal</small><b>{money(m.price)}원</b><button onClick={() => setOptionMenu({menu:m,shop:selected})}>옵션 선택 · 담기</button></div><span>{m.icon}</span></article></Fragment>)}</section>{optionMenu&&<MenuOptionsModal menu={optionMenu.menu} onClose={()=>setOptionMenu(null)} onAdd={item=>{add(item,optionMenu.shop);setOptionMenu(null)}}/>}{cart.length > 0 && <button className="floating-cart" onClick={() => setStep('cart')}><span>{cart.reduce((s,i)=>s+i.quantity,0)}</span><b>장바구니 보기</b><strong>{money(total)}원</strong></button>}</div>;
 
   if (step === 'cart') return <div className="page market-page"><MarketHeader title="장바구니" back={() => setStep(selected ? 'shop':'list')} cartCount={0} openCart={() => undefined} />{cart.length ? <><section className="cart-shop"><small>가상 상점</small><h2>{cart[0].shopName}</h2>{cart.map(i => <div className="cart-row" key={i.id}><span>{i.icon}</span><div><b>{i.name}</b><small>{money(i.price)}원</small></div><div className="quantity"><button onClick={() => quantity(i.id,-1)}>−</button><b>{i.quantity}</b><button onClick={() => quantity(i.id,1)}>＋</button></div></div>)}</section><section className="bill"><div><span>메뉴 금액</span><b>{money(itemTotal)}원</b></div><div><span>배달비</span><b>{delivery ? `${money(delivery)}원` : '무료'}</b></div><div className="bill-total"><span>총 주문금액</span><b>{money(total)}원</b></div></section><button className="checkout-button" onClick={() => setStep('checkout')}>{money(total)}원 주문하기</button></> : <Empty icon="🛒" title="장바구니가 비었어요" text="가상 상점에서 먹고 싶은 메뉴를 골라보세요." action="상점 둘러보기" onAction={() => setStep('list')} />}</div>;
 
-  if (step === 'checkout') return <div className="page market-page"><MarketHeader title="모의 결제" back={() => setStep('cart')} cartCount={0} openCart={() => undefined} /><div className="simulation-banner"><span>i</span><p><b>실제 결제가 아니에요</b><br/>카드·계좌 정보는 입력하거나 저장하지 않습니다.</p></div><section className="checkout-card"><h2>주문 정보</h2><div><span>{cart[0]?.shopName}</span><b>{cart.reduce((s,i)=>s+i.quantity,0)}개 메뉴</b></div><div><span>예상 열량</span><b>약 {money(totalCalories)} kcal</b></div><div><span>결제 예정 금액</span><strong>{money(total)}원</strong></div></section><section className="payment-card"><h2>결제 수단 체험</h2>{['간편결제','신용·체크카드','현장 결제'].map(p => <button className={payMethod===p?'selected':''} onClick={() => setPayMethod(p)} key={p}><span>{p==='간편결제'?'⚡':p==='신용·체크카드'?'▣':'⌂'}</span><b>{p}</b><i>{payMethod===p?'●':'○'}</i></button>)}</section><section className="pace-card"><h2>마음을 식힐 시간을 골라요</h2>{['빠르게 정리','천천히 생각'].map(p=><button className={pace===p?'selected':''} key={p} onClick={()=>setPace(p)}><span>{p==='빠르게 정리'?'⚡':'🌿'}</span><div><b>{p}</b><small>{p==='빠르게 정리'?'짧은 가상 배달 체험':'조금 더 천천히 생각하기'}</small></div><i>{pace===p?'●':'○'}</i></button>)}</section><section className="decision-zone"><span>결제 직전 마지막 선택</span><h2>이 {money(total)}원, 정말 쓸까요?</h2><p>어떤 선택이든 기록하면 다음 판단이 쉬워져요.</p><button className="defend-order" onClick={() => setJourney({total,calories:totalCalories,memo:`${cart[0]?.shopName} 가상 주문`})}>🛡️ 가상 배달을 시작하고 참기</button><button className="buy-order" onClick={() => finishOrder('spent',total,`${cart[0]?.shopName} 가상 주문`,totalCalories)}>모의 결제 완료 · 결국 샀다</button></section></div>;
+  if (step === 'checkout') return <div className="page market-page"><MarketHeader title="모의 결제" back={() => setStep('cart')} cartCount={0} openCart={() => undefined} /><div className="simulation-banner"><span>i</span><p><b>실제 결제가 아니에요</b><br/>카드·계좌 정보는 입력하거나 저장하지 않습니다.</p></div><section className="checkout-card"><h2>주문 정보</h2><div><span>{cart[0]?.shopName}</span><b>{cart.reduce((s,i)=>s+i.quantity,0)}개 메뉴</b></div><div><span>예상 열량</span><b>약 {money(totalCalories)} kcal</b></div><div><span>결제 예정 금액</span><strong>{money(total)}원</strong></div></section><section className="payment-card"><h2>결제 수단 체험</h2>{['간편결제','신용·체크카드','현장 결제'].map(p => <button className={payMethod===p?'selected':''} onClick={() => setPayMethod(p)} key={p}><span>{p==='간편결제'?'⚡':p==='신용·체크카드'?'▣':'⌂'}</span><b>{p}</b><i>{payMethod===p?'●':'○'}</i></button>)}</section><section className="pace-card"><h2>마음을 식힐 시간을 골라요</h2>{['빠르게 정리','천천히 생각'].map(p=><button className={pace===p?'selected':''} key={p} onClick={()=>setPace(p)}><span>{p==='빠르게 정리'?'⚡':'🌿'}</span><div><b>{p}</b><small>{p==='빠르게 정리'?'짧은 가상 배달 체험':'조금 더 천천히 생각하기'}</small></div><i>{pace===p?'●':'○'}</i></button>)}</section><section className="decision-zone"><span>결제 직전 마지막 선택</span><h2>이 {money(total)}원, 정말 쓸까요?</h2><p>어떤 선택이든 기록하면 다음 판단이 쉬워져요.</p><button className="defend-order" onClick={() => setJourney({total,calories:totalCalories,memo:`${cart[0]?.shopName} 가상 주문`})}>🛡️ 가상 배달을 시작하고 참기</button><button className="buy-order" onClick={() => { finishOrder('spent',total,`${cart[0]?.shopName ?? '가상 상점'} 가상 주문`,totalCalories); setSelected(null); setStep('list'); }}>모의 결제 완료 · 결국 샀다</button></section></div>;
 
   return <div className="page market-page delivery-home">
-    <div className="market-sticky"><header className="delivery-home-head"><div><small>오늘의 방어 훈련</small><button>가상 배달 상점 둘러보기</button></div><button className="head-settings" onClick={openSettings} aria-label="설정">⚙</button><button className="head-cart" onClick={() => setStep('cart')} aria-label="장바구니">🛒{cart.length > 0 && <i>{cart.reduce((s,i)=>s+i.quantity,0)}</i>}</button></header>
+    <div className="market-sticky"><header className="delivery-home-head"><div><button className="market-brand">참았다! 가상 상점</button></div><button className="head-settings" onClick={openSettings} aria-label="설정">⚙</button><button className="head-cart" onClick={() => setStep('cart')} aria-label="장바구니">🛒{cart.length > 0 && <i>{cart.reduce((s,i)=>s+i.quantity,0)}</i>}</button></header>
     <label className="food-search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="상점이나 메뉴를 검색해보세요"/><button onClick={()=>setQuery('')} aria-label="검색어 지우기">{query?'×':'↵'}</button></label></div>
-    <section className="category-bubbles">{shopCategories.slice(1).map(c => { const icon=shops.find(s=>s.category===c)?.icon ?? '🍽️'; return <button className={filter===c?'selected':''} onClick={()=>setFilter(filter===c?'전체':c)} key={c}><span>{icon}</span><b>{c}</b></button>})}</section>
+    <section className="category-bubbles">{shopCategories.map(c => {
+      if (c === '전체') return <button className={filter===c?'selected':''} onClick={()=>setFilter(c)} key={c}><span className="category-photo collage">{[4,7,10,16].map(i=><i key={i} style={foodPhotoStyle(i)} />)}</span><b>{c}</b></button>;
+      const sample = shops.find(s=>s.category===c);
+      return <button className={filter===c?'selected':''} onClick={()=>setFilter(c)} key={c}><span className="category-photo" style={sample?foodPhotoStyle(shopPhotoIndex(sample)):undefined} /><b>{c}</b></button>;
+    })}</section>
     <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
     <section className="popular-section"><div className="popular-heading"><div><span>TODAY&apos;S POPULAR</span><h2>지금 많이 참는 메뉴</h2><p>가상 주문에서 가장 자주 선택된 메뉴예요.</p></div></div><div className="popular-scroll">{popular.map(({shop,menu,rank})=><button key={shop.id} onClick={()=>{setSelected(shop);setStep('shop')}}><span className="popular-photo" style={foodPhotoStyle(shopPhotoIndex(shop))}><i>{rank}</i></span><b>{menu.name}</b><small>{shop.name}</small><em>{money(menu.price)}원</em></button>)}</div></section>
     <section className="story-section"><div className="story-heading"><div><span>GOAL STORIES</span><h2>참은 사람들의 도착 후기</h2><p>진짜 목표를 이룬 순간을 나눠요.</p></div><button onClick={openStory}>후기 쓰기</button></div><div className="story-scroll">{stories.slice(0,4).map(s => <article className={s.featured?'story-card featured':'story-card'} key={s.id}><div><span>{s.status==='pending'?'⏳ 승인 대기':s.featured?'🏆 이달의 방어왕':`#${s.tag}`}</span><small>{s.createdAt}</small></div><h3>{s.title}</h3><p>“{s.body}”</p><footer><b>{s.nickname}</b><span>{s.goal} · {money(s.amount)}원 · {s.period}</span></footer></article>)}</div></section>
     <button className="sponsor-card" onMouseEnter={()=>campaign&&fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'view'})})} onClick={()=>{if(campaign){fetch('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'click'})});window.open(campaign.linkUrl,'_blank','noopener,noreferrer')}else openAdInquiry();}}><span><em>{campaign?.label??'AD · 제휴 예시'}</em><b>{campaign?.title??'목표를 응원하는 브랜드 자리'}</b><small>{campaign?.description??'참았다!와 함께할 파트너를 기다립니다.'}</small></span><i>{campaign?'자세히 ›':'광고 문의 ›'}</i></button>
-    <div className="list-heading"><div><h2>{filter==='전체'?'지금 주문하기 좋은 곳':`${filter} 맛집`}</h2><small>모든 상점은 가상의 브랜드예요</small></div><button className="add-custom-menu" onClick={()=>setCustomMenuOpen(true)}>＋ 내 메뉴</button></div>
-    <section className="shop-list">{filtered.length ? filtered.map(s => <article className="shop-card photo-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}><div className="shop-photo" style={foodPhotoStyle(shopPhotoIndex(s))}><em>{s.badge}</em><button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></div><div className="shop-card-copy"><div><h2>{s.name}</h2><strong>{s.time}</strong></div><p><b>★ {s.rating}</b> · 리뷰 {money(Math.round(s.rating*317))}개</p><footer><span>{s.category}</span><small>배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</small></footer></div></article>) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
+    <div className="list-heading"><div><h2>오늘은 어떤 배달을 안 시킬까요?</h2><small>{allShops.length}개 음식점 · {menuCount}개 메뉴를 가상으로 주문해보세요</small></div><button className="add-custom-menu" onClick={()=>setCustomMenuOpen(true)}>＋ 직접 추가</button></div>
+    <section className="shop-list">{filtered.length ? filtered.map(s => { const photos = shopPhotoSet(s); return <article className="shop-card photo-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}>
+      <div className="shop-gallery">
+        <span className="shop-photo main" style={foodPhotoStyle(photos[0].index)}>{s.badge && <em>{s.badge}</em>}<button className={favorites.includes(s.id)?'liked':''} onClick={e=>{e.stopPropagation();setFavorites(v=>v.includes(s.id)?v.filter(id=>id!==s.id):[...v,s.id])}} aria-label={`${s.name} 찜`}>{favorites.includes(s.id)?'♥':'♡'}</button></span>
+        <span className={`shop-photo sub zoom-${photos[1].zoom}`} style={foodPhotoStyle(photos[1].index)} />
+        <span className={`shop-photo sub zoom-${photos[2].zoom}`} style={foodPhotoStyle(photos[2].index)} />
+      </div>
+      <div className="shop-card-copy"><div><h2>{s.name}</h2><strong>{s.time}</strong></div><p><b>★ {s.rating}</b> · {money(reviewCount(s))} 리뷰 <i>›</i></p><footer><span>{s.category}</span><small>배달비 {s.delivery ? `${money(s.delivery)}원` : '무료'}</small></footer></div>
+    </article>; }) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
     {customMenuOpen&&<CustomMenuModal onClose={()=>setCustomMenuOpen(false)} onAdd={menu=>{setCustomMenus(v=>[menu,...v]);setCustomMenuOpen(false);setFilter('전체')}}/>}
   </div>;
 }
 
 function MarketHeader({ title, back, cartCount, openCart }: { title: string; back?: () => void; cartCount: number; openCart: () => void }) { return <header className="market-header">{back ? <button onClick={back} aria-label="뒤로">‹</button> : <span className="mini-logo">ㅊ</span>}<h1>{title}</h1><button className="cart-icon" onClick={openCart} aria-label="장바구니">🛒{cartCount > 0 && <i>{cartCount}</i>}</button></header>; }
 
-function HistoryView({ records, selectedDate, setSelectedDate, removeRecord }: { records: RecordItem[]; selectedDate: string; setSelectedDate: (v: string) => void; removeRecord: (id: string) => void }) {
+function HistoryView({ records, selectedDate, setSelectedDate, removeRecord, goStats }: { records: RecordItem[]; selectedDate: string; setSelectedDate: (v: string) => void; removeRecord: (id: string) => void; goStats: () => void }) {
   const filtered = records.filter(r => r.date === selectedDate); const saved = filtered.filter(r => r.result === 'saved').reduce((s, r) => s + r.amount, 0);
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return { key: dateKey(d), day: ['일','월','화','수','목','금','토'][d.getDay()], num: d.getDate() }; });
   return <div className="page"><PageHeading eyebrow="기록 보관함" title="내역" subtitle="유혹 앞에서 했던 선택을 돌아봐요." />
@@ -270,27 +329,46 @@ function HistoryView({ records, selectedDate, setSelectedDate, removeRecord }: {
     <label className="date-picker">날짜 직접 선택 <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} /></label>
     <section className="day-summary"><span>{selectedDate === dateKey() ? '오늘' : selectedDate} 지킨 돈</span><b>{money(saved)}원</b><small>{filtered.length}번의 선택</small></section>
     <section className="section-block history-list"><div className="section-title"><h2>선택 기록</h2></div>{filtered.length ? <RecordList records={filtered} removable onRemove={removeRecord} /> : <Empty icon="🫧" title="이날은 기록이 없어요" text="선택한 날짜에 남긴 기록이 없습니다." />}</section>
+    <button className="page-jump" onClick={goStats}><span>▥</span><div><b>이번 달 리포트로 돌아가기</b><small>방어율과 카테고리별 통계 보기</small></div><i>›</i></button>
   </div>;
 }
 
-function StatsView({ records, savedAmount, rate }: { records: RecordItem[]; savedAmount: number; rate: number }) {
+function StatsView({ records, savedAmount, rate, totalSaved, savings, openSavings, goHistory }: { records: RecordItem[]; savedAmount: number; rate: number; totalSaved: number; savings: SavingsQueue; openSavings: (m:'account'|'transfer')=>void; goHistory: () => void }) {
   const success = records.filter(r => r.result === 'saved').length; const failed = records.length - success;
+  const pendingTotal = savings.pending.reduce((sum, p) => sum + p.amount, 0);
+  // 지킨 돈 중 실제로 은행에 옮긴 비율. 두 금액은 더하는 값이 아니라 포함 관계다.
+  const transferPercent = totalSaved ? Math.min(100, Math.round(savings.transferred / totalSaved * 100)) : 0;
   const rows = categories.map(c => { const items = records.filter(r => r.category === c.id); return { ...c, count: items.length, saved: items.filter(r => r.result === 'saved').reduce((s, r) => s + r.amount, 0) }; }).filter(r => r.count).sort((a, b) => b.saved - a.saved);
   const max = Math.max(...rows.map(r => r.saved), 1);
   return <div className="page"><PageHeading eyebrow={`${new Date().getMonth() + 1}월 리포트`} title="나의 방어력" subtitle="참은 선택이 어떤 변화를 만들었는지 확인해요." />
     <section className="stat-hero"><div className="rate-ring" style={{ '--rate': `${rate * 3.6}deg` } as React.CSSProperties}><span><b>{rate}%</b><small>방어율</small></span></div><div><span>이번 달 지킨 돈</span><h2>{money(savedAmount)}원</h2><p>{records.length ? `${records.length}번의 유혹 중 ${success}번을 지켰어요.` : '기록을 시작하면 분석이 쌓여요.'}</p></div></section>
     <div className="score-grid"><article><span>✓</span><div><small>참았다</small><b>{success}회</b></div></article><article className="lost"><span>↘</span><div><small>결국 샀다</small><b>{failed}회</b></div></article></div>
+    <section className="section-block"><div className="section-title"><h2>실제 저축 전환</h2></div>
+      <div className="transfer-card">
+        <div className="transfer-top"><div><small>지금까지 지킨 돈</small><b>{money(totalSaved)}원</b></div><div className="right"><small>은행으로 옮긴 돈</small><b>{money(savings.transferred)}원</b></div></div>
+        <div className="transfer-bar"><i style={{ width: `${transferPercent}%` }} /></div>
+        <div className="transfer-legend"><span>지킨 돈의 {transferPercent}% 를 실제로 옮겼어요</span></div>
+        {pendingTotal > 0
+          ? <button className="transfer-cta" onClick={() => openSavings(savings.account ? 'transfer' : 'account')}>🏦 대기 중인 {money(pendingTotal)}원 옮기기</button>
+          : <p className="transfer-hint">{savings.transferred ? '대기 중인 금액이 없어요. 다음 방어도 저축으로 이어가 보세요.' : '방어에 성공한 뒤 “진짜 저축하기”를 누르면 옮길 금액이 여기에 모여요.'}</p>}
+      </div>
+    </section>
     <section className="section-block category-stats"><div className="section-title"><h2>카테고리별 방어</h2></div>{rows.length ? rows.map(r => <div className="category-row" key={r.id}><span style={{ background: r.color }}>{r.icon}</span><div><div><b>{r.id}</b><small>{r.count}회</small></div><i><em style={{ width: `${r.saved / max * 100}%` }} /></i></div><strong>{money(r.saved)}원</strong></div>) : <Empty icon="📊" title="통계가 기다리고 있어요" text="한 번만 기록해도 분석이 시작됩니다." />}</section>
+    <button className="page-jump" onClick={goHistory}><span>◷</span><div><b>날짜별 전체 내역 보기</b><small>하루하루 어떤 선택을 했는지 확인해요</small></div><i>›</i></button>
   </div>;
 }
 
-function GoalsView({ goals, totalSaved, profile, savings, openSavings, openProfile, openGoal, openAdmin, removeGoal }: { goals: Goal[]; totalSaved: number; profile:Profile; savings:SavingsQueue; openSavings:(m:'account'|'transfer')=>void; openProfile:()=>void; openGoal: () => void; openAdmin: () => void; removeGoal: (id: string) => void }) {
+function GoalsView({ goals, totalSaved, profile, savings, isAdmin, openSavings, openProfile, openSettings, openGoal, openAdmin, removeGoal }: { goals: Goal[]; totalSaved: number; profile:Profile; savings:SavingsQueue; isAdmin:boolean; openSavings:(m:'account'|'transfer')=>void; openProfile:()=>void; openSettings:()=>void; openGoal: () => void; openAdmin: () => void; removeGoal: (id: string) => void }) {
+  // 지킨 돈은 목표 순서대로 채워진다. 첫 목표를 다 채우면 남는 금액이 다음 목표로 넘어간다.
+  let remaining = totalSaved;
+  const allocations = goals.map(g => { const applied = Math.min(remaining, g.amount); remaining -= applied; return applied; });
   return <div className="page"><PageHeading eyebrow="돈의 목적지" title="목표" subtitle="안 쓴 돈을 내가 원하는 미래에 연결해요." />
-    <button className="profile-entry" onClick={openProfile}><span>{profile.authenticated?'🙂':'🔐'}</span><div><b>{profile.authenticated?(profile.nickname||'닉네임을 정해주세요'):'로그인·회원가입'}</b><small>{profile.authenticated?profile.email:'카카오 또는 이메일로 간편하게 시작해요'}</small></div><i>›</i></button>
+    <button className="profile-entry" onClick={openProfile}><span>{profile.authenticated?'🙂':'👤'}</span><div><b>{profile.authenticated?(profile.nickname||'닉네임을 정해주세요'):'내 프로필 만들기'}</b><small>{profile.authenticated?(profile.email||'닉네임 수정하기'):'닉네임만 정하면 바로 시작해요'}</small></div><i>›</i></button>
     <section className="savings-wallet"><div><span>🏦</span><p><small>저축 대기함</small><b>{money(savings.pending.reduce((n,p)=>n+p.amount,0))}원</b><em>{savings.account?`${savings.account.bank} · ${savings.account.accountNumber.slice(-4)}`:'저축계좌를 설정해주세요'}</em></p></div><button onClick={()=>openSavings(savings.account?'transfer':'account')}>{savings.account?'저축하기':'계좌 설정'}</button><footer><span>직접 이체 완료</span><b>{money(savings.transferred)}원</b><button onClick={()=>openSavings('account')}>설정</button></footer></section>
     <button className="add-goal" onClick={openGoal}><span>＋</span><div><b>새 목표 만들기</b><small>목표는 여러 개 만들 수 있어요</small></div></button>
-    <button className="admin-entry" onClick={openAdmin}><span>⚙️</span><div><b>운영자 센터</b><small>후기 승인 · 숨김 · 이벤트 선정</small></div><i>›</i></button>
-    <section className="goal-stack">{goals.length ? goals.map((g, i) => { const p = Math.min(100, Math.round(totalSaved / g.amount * 100)); return <article className="full-goal" key={g.id}><button className="delete-goal" onClick={() => removeGoal(g.id)} aria-label={`${g.name} 삭제`}>×</button><div className="goal-emoji">{g.emoji}</div><span className="eyebrow">목표 {String(i + 1).padStart(2, '0')}</span><h2>{g.name}</h2><div className="goal-big"><b>{p}%</b><span>{money(totalSaved)}원 / {money(g.amount)}원</span></div><div className="progress"><i style={{ width: `${p}%` }} /></div><p>{p >= 100 ? '목표 달성! 이제 다음 목적지를 정해볼까요?' : `앞으로 ${money(Math.max(0, g.amount - totalSaved))}원만 더 지키면 도착해요.`}</p></article>; }) : <Empty icon="🏁" title="아직 정한 목표가 없어요" text="지키고 싶은 돈의 목적지를 만들어보세요." action="첫 목표 만들기" onAction={openGoal} />}</section><div className="legal-links"><a href="/privacy">개인정보처리방침</a><span>·</span><a href="mailto:gyun23456@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EA%B3%84%EC%A0%95%C2%B7%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD">데이터 삭제 요청</a></div>
+    <button className="page-jump" onClick={openSettings}><span>⚙</span><div><b>설정</b><small>테마 · 기록 백업 · 데이터 삭제 · 개인정보처리방침</small></div><i>›</i></button>
+    {isAdmin && <button className="admin-entry" onClick={openAdmin}><span>⚙️</span><div><b>운영자 센터</b><small>후기 승인 · 숨김 · 이벤트 선정</small></div><i>›</i></button>}
+    <section className="goal-stack">{goals.length ? goals.map((g, i) => { const applied = allocations[i]; const p = Math.min(100, Math.round(applied / g.amount * 100)); return <article className="full-goal" key={g.id}><button className="delete-goal" onClick={() => removeGoal(g.id)} aria-label={`${g.name} 삭제`}>×</button><div className="goal-emoji">{g.emoji}</div><span className="eyebrow">목표 {String(i + 1).padStart(2, '0')}</span><h2>{g.name}</h2><div className="goal-big"><b>{p}%</b><span>{money(applied)}원 / {money(g.amount)}원</span></div><div className="progress"><i style={{ width: `${p}%` }} /></div><p>{p >= 100 ? '목표 달성! 이제 다음 목적지를 정해볼까요?' : `앞으로 ${money(Math.max(0, g.amount - applied))}원만 더 지키면 도착해요.`}</p></article>; }) : <Empty icon="🏁" title="아직 정한 목표가 없어요" text="지키고 싶은 돈의 목적지를 만들어보세요." action="첫 목표 만들기" onAction={openGoal} />}</section><div className="legal-links"><a href="/privacy">개인정보처리방침</a><span>·</span><a href="mailto:gyun23456@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EA%B3%84%EC%A0%95%C2%B7%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD">데이터 삭제 요청</a></div>
   </div>;
 }
 

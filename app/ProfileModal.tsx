@@ -1,4 +1,74 @@
 'use client';
 import { FormEvent, useState } from 'react';
+
 type Profile={authenticated:boolean;nickname?:string;email?:string};
-export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;onSaved:(p:Profile)=>void;onClose:()=>void}){const [nickname,setNickname]=useState(profile.nickname??'');const [email,setEmail]=useState('');const [mode,setMode]=useState<'choice'|'email'>('choice');const [error,setError]=useState('');const localLogin=(e:FormEvent)=>{e.preventDefault();const p={authenticated:true,nickname:email.split('@')[0].slice(0,16),email};localStorage.setItem('chamatta-local-profile',JSON.stringify(p));onSaved(p)};if(!profile.authenticated)return <div className="modal-backdrop"><section className="modal-sheet profile-sheet"><header><div><span>CHAMATTA ACCOUNT</span><h2>간편하게 시작하기</h2><p>참기 기록과 목표를 내 계정에 연결해요.</p></div><button onClick={onClose}>×</button></header>{mode==='choice'?<div className="signin-box"><span>ㅊ</span><h3>참았다! 로그인</h3><p>ChatGPT 계정은 필요하지 않아요.<br/>원하는 방법으로 시작하세요.</p><button className="kakao-login" type="button" onClick={()=>setError('카카오 개발자 연동 키를 등록하면 바로 사용할 수 있어요.')}>💬 카카오로 계속하기</button><button className="email-login" type="button" onClick={()=>setMode('email')}>✉️ 이메일로 계속하기</button>{error&&<p className="login-notice">{error}</p>}<button className="login-later" onClick={onClose}>로그인 없이 둘러보기</button></div>:<form className="profile-form" onSubmit={localLogin}><button type="button" className="login-back" onClick={()=>setMode('choice')}>‹ 다른 방법 선택</button><div className="profile-avatar">✉️</div><h3>이메일로 시작하기</h3><label><span>이메일</span><input autoFocus required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label><button className="submit-button">계속하기</button><small>현재 기기에 프로필이 저장됩니다.</small></form>}</section></div>;const submit=async(e:FormEvent)=>{e.preventDefault();const local=localStorage.getItem('chamatta-local-profile');if(local){const p={...profile,nickname};localStorage.setItem('chamatta-local-profile',JSON.stringify(p));onSaved(p);return}const r=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname})});const p=await r.json();if(!r.ok)return setError(p.error??'저장하지 못했어요.');onSaved({...profile,nickname:p.nickname})};const logout=()=>{localStorage.removeItem('chamatta-local-profile');onSaved({authenticated:false})};return <div className="modal-backdrop"><section className="modal-sheet profile-sheet"><header><div><span>ACCOUNT</span><h2>내 프로필</h2><p>후기와 이벤트에 표시할 이름을 정해주세요.</p></div><button onClick={onClose}>×</button></header><form className="profile-form" onSubmit={submit}><div className="profile-avatar">🙂</div><small>{profile.email}</small><label><span>닉네임</span><input autoFocus minLength={2} maxLength={16} required value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="2~16자"/></label>{error&&<p>{error}</p>}<button className="submit-button">프로필 저장</button><button type="button" className="login-later" onClick={logout}>로그아웃</button></form></section></div>}
+
+const LOCAL_KEY='chamatta-local-profile';
+
+export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;onSaved:(p:Profile)=>void;onClose:()=>void}){
+  const [nickname,setNickname]=useState(profile.nickname??'');
+  const [email,setEmail]=useState(profile.email??'');
+  const [error,setError]=useState('');
+  const [removing,setRemoving]=useState(false);
+  const isLocal=typeof window!=='undefined'&&!!localStorage.getItem(LOCAL_KEY);
+
+  // 아직 프로필이 없을 때: 닉네임만 정하면 바로 시작한다.
+  if(!profile.authenticated){
+    const create=(e:FormEvent)=>{
+      e.preventDefault();
+      const name=nickname.trim();
+      if(name.length<2)return setError('닉네임을 2자 이상 입력해주세요.');
+      const next:Profile={authenticated:true,nickname:name.slice(0,16),email:email.trim()||undefined};
+      try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next))}catch{return setError('이 브라우저에서는 프로필을 저장할 수 없어요.')}
+      onSaved(next);
+    };
+    return <div className="modal-backdrop"><section className="modal-sheet profile-sheet">
+      <header><div><span>CHAMATTA PROFILE</span><h2>내 프로필 만들기</h2><p>후기와 목표에 표시할 이름을 정해요.</p></div><button onClick={onClose} aria-label="닫기">×</button></header>
+      <form className="profile-form" onSubmit={create}>
+        <div className="profile-avatar">ㅊ</div>
+        <label><span>닉네임 <small>필수</small></span><input autoFocus required minLength={2} maxLength={16} value={nickname} onChange={e=>{setNickname(e.target.value);setError('')}} placeholder="예: 야식졸업생"/></label>
+        <label><span>이메일 <small>선택 · 문의나 이벤트 안내용</small></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>
+        {error&&<p>{error}</p>}
+        <button className="submit-button" disabled={nickname.trim().length<2}>이 이름으로 시작하기</button>
+        <div className="profile-storage-note">🔒 프로필과 절약 기록은 <b>이 기기에만</b> 저장돼요. 비밀번호는 받지 않으며, 앱을 삭제하면 기록도 함께 사라집니다.</div>
+        <div className="soon-row"><span>💬</span><div><b>카카오로 계속하기</b><small>여러 기기에서 기록을 이어보는 기능이에요</small></div><i>준비 중</i></div>
+        <button type="button" className="login-later" onClick={onClose}>프로필 없이 둘러보기</button>
+      </form>
+    </section></div>;
+  }
+
+  // 이미 프로필이 있을 때: 이름 수정과 삭제.
+  const save=async(e:FormEvent)=>{
+    e.preventDefault();
+    const name=nickname.trim();
+    if(name.length<2)return setError('닉네임을 2자 이상 입력해주세요.');
+    if(isLocal){
+      const next={...profile,nickname:name,email:email.trim()||undefined};
+      try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next))}catch{return setError('저장하지 못했어요.')}
+      return onSaved(next);
+    }
+    try{
+      const response=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:name})});
+      const payload=await response.json();
+      if(!response.ok)return setError(payload.error??'저장하지 못했어요.');
+      onSaved({...profile,nickname:payload.nickname});
+    }catch{setError('네트워크 상태를 확인해주세요.')}
+  };
+  const removeProfile=()=>{try{localStorage.removeItem(LOCAL_KEY)}catch{/* 무시 */}onSaved({authenticated:false})};
+
+  return <div className="modal-backdrop"><section className="modal-sheet profile-sheet">
+    <header><div><span>MY PROFILE</span><h2>내 프로필</h2><p>후기와 목표에 표시할 이름이에요.</p></div><button onClick={onClose} aria-label="닫기">×</button></header>
+    <form className="profile-form" onSubmit={save}>
+      <div className="profile-avatar">🙂</div>
+      {profile.email&&<small>{profile.email}</small>}
+      <label><span>닉네임</span><input autoFocus minLength={2} maxLength={16} required value={nickname} onChange={e=>{setNickname(e.target.value);setError('')}} placeholder="2~16자"/></label>
+      {isLocal&&<label><span>이메일 <small>선택</small></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>}
+      {error&&<p>{error}</p>}
+      <button className="submit-button" disabled={nickname.trim().length<2}>프로필 저장</button>
+      {isLocal&&<div className="profile-storage-note">🔒 이 프로필은 이 기기에만 저장돼 있어요.</div>}
+      {removing
+        ? <div className="profile-remove-confirm"><b>프로필을 지울까요?</b><p>이름과 이메일이 지워집니다. 절약 기록은 남아 있어요. 기록까지 지우려면 설정 &gt; 내 데이터 삭제를 이용하세요.</p><div><button type="button" onClick={()=>setRemoving(false)}>취소</button><button type="button" className="remove-go" onClick={removeProfile}>프로필 지우기</button></div></div>
+        : <button type="button" className="login-later" onClick={()=>setRemoving(true)}>프로필 지우기</button>}
+    </form>
+  </section></div>;
+}
