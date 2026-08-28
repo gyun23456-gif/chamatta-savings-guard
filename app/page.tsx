@@ -10,6 +10,7 @@ import SettingsModal from './SettingsModal';
 import EnergyModal from './EnergyModal';
 import SavingsChart from './SavingsChart';
 import Ranking from './Ranking';
+import DeliveryMap from './DeliveryMap';
 import { Energy, REVIEW_BONUS, canOrder, earn, loadEnergy, saveEnergy, spend } from './energy';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
@@ -147,6 +148,9 @@ export default function Home() {
   const [settingsOpen,setSettingsOpen]=useState(false);
   const [energy,setEnergy]=useState<Energy|null>(null);
   const [energyOpen,setEnergyOpen]=useState(false);
+  // 가상 배달 화면을 지도로 볼지 기존 단계 화면으로 볼지. 설정에서 바꾼다.
+  const [deliveryView,setDeliveryView]=useState<'map'|'classic'>('map');
+  const pickDeliveryView=(next:'map'|'classic')=>{setDeliveryView(next);try{localStorage.setItem('chamatta-delivery-view',next)}catch{/* 저장이 막혀도 이번 세션은 적용된다 */}};
   // 에너지는 바뀔 때마다 바로 저장한다. 앱을 껐다 켜도 남은 개수가 유지돼야 한다.
   const updateEnergy=(next:Energy)=>{setEnergy(next);saveEnergy(next);};
   const [profile,setProfile]=useState<Profile>({authenticated:false});
@@ -166,6 +170,7 @@ export default function Home() {
     try { const stored = localStorage.getItem('chamatta-savings-v1'); if(stored)setSavings(JSON.parse(stored)); } catch { /* device-only account starts empty */ }
     // loadEnergy 가 날짜를 보고 일일 지급까지 얹어주므로, 받은 값을 그대로 저장해 둔다.
     const startEnergy = loadEnergy(); if (startEnergy) { setEnergy(startEnergy); saveEnergy(startEnergy); }
+    try { if (localStorage.getItem('chamatta-delivery-view') === 'classic') setDeliveryView('classic'); } catch { /* 기본값 그대로 간다 */ }
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
     try { if (!localStorage.getItem('chamatta-onboarded-v1')) setOnboarding(true); } catch { /* 저장소를 못 쓰면 건너뛴다 */ }
     setLoaded(true);
@@ -212,7 +217,7 @@ export default function Home() {
       </header>}
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
-      {tab === 'market' && <MarketView energy={energy} spendEnergy={()=>{ if(energy) updateEnergy(spend(energy)); }} openEnergy={()=>setEnergyOpen(true)} cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
+      {tab === 'market' && <MarketView deliveryView={deliveryView} energy={energy} spendEnergy={()=>{ if(energy) updateEnergy(spend(energy)); }} openEnergy={()=>setEnergyOpen(true)} cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} goStats={() => setTab('stats')} />}
       {tab === 'stats' && <StatsView nickname={profile.nickname || '익명의 방어자'} allRecords={data.records} records={monthRecords} savedAmount={monthSaved} rate={defenseRate} totalSaved={totalSaved} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} goHistory={() => setTab('history')} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} isAdmin={isAdmin} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openSettings={()=>setSettingsOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
@@ -232,7 +237,7 @@ export default function Home() {
       {adInquiryOpen && <AdInquiryModal onClose={() => setAdInquiryOpen(false)} />}
       {profileOpen && <ProfileModal profile={profile} onSaved={p=>{setProfile(p);setProfileOpen(false)}} onClose={()=>setProfileOpen(false)}/>} 
       {energyOpen && energy && <EnergyModal energy={energy} onChange={updateEnergy} onClose={()=>setEnergyOpen(false)} onWriteReview={()=>{setEnergyOpen(false);setStoryOpen(true)}}/>}
-      {settingsOpen && <SettingsModal energy={energy} openEnergy={()=>{setSettingsOpen(false);setEnergyOpen(true)}} profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
+      {settingsOpen && <SettingsModal deliveryView={deliveryView} setDeliveryView={pickDeliveryView} energy={energy} openEnergy={()=>{setSettingsOpen(false);setEnergyOpen(true)}} profile={profile} openProfile={()=>{setSettingsOpen(false);setProfileOpen(true)}} onClose={()=>setSettingsOpen(false)}/>} 
       {savingsMode&&<SavingsModal mode={savingsMode} value={savings} onChange={setSavings} onClose={()=>setSavingsMode(null)}/>} 
       {onboarding && <Onboarding onDone={() => { try { localStorage.setItem('chamatta-onboarded-v1', '1'); } catch { /* 저장소를 못 쓰면 다음에 다시 보여준다 */ } setOnboarding(false); }} />}
       {success && <SuccessModal record={success} total={totalSaved} streak={streak} onQueue={()=>{setSavings(v=>v.pending.some(p=>p.id===success.id)?v:{...v,pending:[...v.pending,{id:success.id,amount:success.amount,memo:success.memo||success.category,date:success.date}]});setSuccess(null);setSavingsMode(savings.account?'transfer':'account')}} onClose={() => setSuccess(null)} />}
@@ -284,7 +289,7 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
   </div>;
 }
 
-function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder, energy, spendEnergy, openEnergy }: { energy: Energy | null; spendEnergy: () => void; openEnergy: () => void; cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
+function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder, energy, spendEnergy, openEnergy, deliveryView }: { deliveryView: 'map' | 'classic'; energy: Energy | null; spendEnergy: () => void; openEnergy: () => void; cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
   const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
   // 결제 화면에 들어갈 때 에너지를 쓴다. 뒤로 갔다 다시 들어와도 두 번 빠지지 않게 표시해 둔다.
   const [orderPaid, setOrderPaid] = useState(false);
@@ -315,7 +320,10 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
   const add = (menu: MenuItem, shop: Shop) => setCart(prev => { const sameShop = prev.filter(i => i.shopId === shop.id); const found = sameShop.find(i => i.id === menu.id); return found ? sameShop.map(i => i.id === menu.id ? {...i,quantity:i.quantity+1}:i) : [...sameShop,{...menu,quantity:1,shopId:shop.id,shopName:shop.name}]; });
   const quantity = (id: string, delta: number) => setCart(prev => prev.map(i => i.id === id ? {...i,quantity:i.quantity+delta}:i).filter(i => i.quantity > 0));
 
-  if (journey) return <DeliveryJourney amount={journey.total} calories={journey.calories} pace={pace} onComplete={()=>{finishOrder('saved',journey.total,journey.memo,journey.calories);setCart([]);setJourney(null);setSelected(null);setOrderPaid(false);setStep('list')}} onCancel={()=>setJourney(null)}/>;
+  if (journey) { const done=()=>{finishOrder('saved',journey.total,journey.memo,journey.calories);setCart([]);setJourney(null);setSelected(null);setOrderPaid(false);setStep('list')}; const cancel=()=>setJourney(null);
+    return deliveryView==='map'
+      ? <DeliveryMap amount={journey.total} calories={journey.calories} pace={pace} onComplete={done} onCancel={cancel}/>
+      : <DeliveryJourney amount={journey.total} calories={journey.calories} pace={pace} onComplete={done} onCancel={cancel}/>; }
   if (step === 'shop' && selected) return <div className="page market-page"><MarketHeader title={selected.name} back={() => setStep('list')} cartCount={cart.reduce((s,i)=>s+i.quantity,0)} openCart={() => setStep('cart')} /><section className="shop-hero"><span>{selected.icon}</span><div><small>{selected.category} · {selected.time}</small><h1>{selected.name}</h1><p>★ {selected.rating} · 배달비 {selected.delivery ? `${money(selected.delivery)}원` : '무료'}</p></div></section><div className="shop-notice">이곳의 상점과 주문은 모두 가상 체험입니다.</div><section className="menu-list"><h2>대표 메뉴</h2>{selected.menus.map((m,i) => <Fragment key={m.id}>{m.section&&selected.menus.findIndex(x=>x.section===m.section)===i&&<div className="menu-section-title"><span>🥤</span><div><h2>{m.section}</h2><small>주류는 성인용 가상 메뉴이며 실제 판매·결제되지 않아요.</small></div></div>}<article className="menu-card" data-option-profile={optionProfileForName(m.name).id}><div className="menu-copy"><h3>{m.name}</h3><p>{m.description}</p><small>🔥 약 {m.calories??Math.round(m.price/14)} kcal</small><b>{money(m.price)}원</b><button onClick={() => setOptionMenu({menu:m,shop:selected})}>옵션 선택 · 담기</button></div><span>{m.icon}</span></article></Fragment>)}</section>{optionMenu&&<MenuOptionsModal menu={optionMenu.menu} onClose={()=>setOptionMenu(null)} onAdd={item=>{add(item,optionMenu.shop);setOptionMenu(null)}}/>}{cart.length > 0 && <button className="floating-cart" onClick={() => setStep('cart')}><span>{cart.reduce((s,i)=>s+i.quantity,0)}</span><b>장바구니 보기</b><strong>{money(total)}원</strong></button>}</div>;
 
   if (step === 'cart') return <div className="page market-page"><MarketHeader title="장바구니" back={() => setStep(selected ? 'shop':'list')} cartCount={0} openCart={() => undefined} />{cart.length ? <><section className="cart-shop"><small>가상 상점</small><h2>{cart[0].shopName}</h2>{cart.map(i => <div className="cart-row" key={i.id}><span>{i.icon}</span><div><b>{i.name}</b><small>{money(i.price)}원</small></div><div className="quantity"><button onClick={() => quantity(i.id,-1)}>−</button><b>{i.quantity}</b><button onClick={() => quantity(i.id,1)}>＋</button></div></div>)}</section><section className="bill"><div><span>메뉴 금액</span><b>{money(itemTotal)}원</b></div><div><span>배달비</span><b>{delivery ? `${money(delivery)}원` : '무료'}</b></div><div className="bill-total"><span>총 주문금액</span><b>{money(total)}원</b></div></section><button className="checkout-button" onClick={() => { if (orderPaid) return setStep('checkout'); if (!canOrder(energy)) return openEnergy(); spendEnergy(); setOrderPaid(true); setStep('checkout'); }}>{money(total)}원 주문하기</button></> : <Empty icon="🛒" title="장바구니가 비었어요" text="가상 상점에서 먹고 싶은 메뉴를 골라보세요." action="상점 둘러보기" onAction={() => setStep('list')} />}</div>;

@@ -7,3 +7,4 @@
 
 .settings-choice>div{display:flex;flex-direction:column;gap:3px;min-width:0}
 .settings-choice>div small{white-space:normal;line-height:1.45}
+.settings-fineprint{margin:9px 2px 0;font-size:9px;line-height:1.6;color:var(--muted)}
