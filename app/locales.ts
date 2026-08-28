@@ -8,6 +8,9 @@
 // 남은 것: 상점과 메뉴 콘텐츠, 개인정보처리방침. 방침은 법적 고지라
 // 번역본을 게시하기 전에 반드시 사람이 확인해야 한다.
 
+import { enContent, jaContent, zhContent } from './locales-content';
+import { enMenu, jaMenu, zhMenu } from './locales-menu';
+
 export type Lang = 'ko' | 'en' | 'ja' | 'zh';
 
 export const LANGS: { code: Lang; label: string; flag: string }[] = [
@@ -284,7 +287,11 @@ const zh: Dict = {
   '절약': '已省下',
 };
 
-export const DICT: Record<Exclude<Lang, 'ko'>, Dict> = { en, ja, zh };
+export const DICT: Record<Exclude<Lang, 'ko'>, Dict> = {
+  en: { ...en, ...enContent, ...enMenu },
+  ja: { ...ja, ...jaContent, ...jaMenu },
+  zh: { ...zh, ...zhContent, ...zhMenu },
+};
 
 /** 사전에 없으면 한국어 원문을 그대로 돌려준다. */
 export const translate = (lang: Lang, ko: string): string =>
