@@ -1,0 +1,170 @@
+/* 가상 주문 에너지: 상단 잔량 버튼과 충전 시트 */
+
+.energy-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border: 1px solid #e8dddc;
+  border-radius: 20px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+.energy-pill span { font-size: 14px; line-height: 1; }
+.energy-pill.is-empty { border-color: var(--green); color: var(--green); }
+
+.energy-sheet { padding-bottom: 26px; }
+
+.energy-mycode {
+  margin: 14px 0 0;
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: #f6eceb;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+.energy-mycode b { color: var(--ink); letter-spacing: 1.5px; }
+
+.energy-balance {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 18px 16px;
+  border-radius: 22px;
+  background: #f8eae9;
+}
+.energy-balance > span { font-size: 30px; line-height: 1; }
+.energy-balance div { display: flex; flex-direction: column; gap: 3px; }
+.energy-balance small { font-size: 10px; color: var(--muted); }
+.energy-balance b { font-size: 27px; letter-spacing: -1px; }
+.energy-balance i {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--green);
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 11px;
+  white-space: nowrap;
+}
+
+.energy-rule {
+  margin: 14px 2px 4px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.energy-row {
+  width: 100%;
+  margin-top: 10px;
+  padding: 15px 16px;
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--ink);
+}
+.energy-row > span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: #f4ebea;
+  font-size: 19px;
+}
+.energy-row > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.energy-row b { font-size: 13px; }
+.energy-row small { font-size: 10px; line-height: 1.6; color: var(--muted); }
+.energy-row > i { font-style: normal; font-size: 14px; font-weight: 900; color: var(--green); }
+.energy-row .energy-plus { font-size: 16px; }
+
+.energy-row-code { border-color: var(--green); background: #fdf4f3; }
+.energy-row-code:disabled { border-color: var(--line); background: #fff; }
+
+/* 앱 스토어 결제·광고 SDK가 붙기 전까지는 눌리지 않는다. */
+.energy-row-off { opacity: .55; cursor: not-allowed; }
+.energy-row-paid > span { background: var(--green); color: #fff; }
+
+.energy-code-form {
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid var(--green);
+  border-radius: 20px;
+  background: #fdf4f3;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.energy-code-form label > span { display: block; font-size: 11px; font-weight: 800; margin-bottom: 8px; }
+.energy-code-form input {
+  width: 100%;
+  height: 50px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 0 14px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  outline: none;
+}
+.energy-code-form input:focus { border-color: var(--green); }
+.energy-code-actions { display: grid; grid-template-columns: 1fr 1.6fr; gap: 9px; }
+.energy-code-actions button:first-child {
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.energy-code-actions .submit-button { height: 48px; font-size: 12px; box-shadow: none; }
+
+.energy-error { margin: 0; font-size: 11px; color: var(--danger); font-weight: 700; }
+.energy-note {
+  margin: 9px 2px 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--green);
+  font-weight: 700;
+}
+.energy-footnote { margin: 16px 2px 0; font-size: 9px; line-height: 1.6; color: var(--muted); }
+
+/* 에너지가 모자라 주문을 막을 때 */
+.energy-block {
+  margin: 12px 0 0;
+  padding: 15px 16px;
+  border: 1px solid var(--green);
+  border-radius: 18px;
+  background: #fdf4f3;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.energy-block p { margin: 0; font-size: 11px; line-height: 1.6; color: var(--ink); }
+.energy-block button {
+  border: 0;
+  border-radius: 13px;
+  background: var(--green);
+  color: #fff;
+  padding: 11px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* 상단바 오른쪽: 에너지 잔량 + 연속 방어일 */
+.topbar-right { display: flex; align-items: center; gap: 8px; }
