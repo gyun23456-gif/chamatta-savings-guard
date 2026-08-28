@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useT } from './i18n';
+import { useT, useWon } from './i18n';
 
 // 배달 화면의 지도 버전. 기존 화면(DeliveryJourney)과 단계·문구는 같고 장면만 다르다.
 //
@@ -24,6 +24,7 @@ const money = (n: number) => n.toLocaleString('ko-KR');
 export default function DeliveryMap({
   amount, calories, pace, onComplete, onCancel,
 }: { amount: number; calories: number; pace: string; onComplete: () => void; onCancel: () => void }) {
+  const won = useWon();
   const t = useT();
   const [stage, setStage] = useState(0);
   const routeRef = useRef<SVGPathElement>(null);
@@ -103,7 +104,7 @@ export default function DeliveryMap({
 
       {stage === 3 ? (
         <section className="journey-result">
-          <div><small>{t('이번에 지킨 돈')}</small><b>{money(amount)}원</b></div>
+          <div><small>{t('이번에 지킨 돈')}</small><b>{won(amount)}</b></div>
           <div><small>{t('피한 예상 열량')}</small><b>{money(calories)} kcal</b></div>
           <button onClick={onComplete}>{t('절약 결과 확인하기')}</button>
         </section>

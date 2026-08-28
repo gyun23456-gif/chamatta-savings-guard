@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { useT } from './i18n';
+import { useT, useWon } from './i18n';
 import {
   Period, RankRow, Totals,
   deviceId, fetchRanks, isJoined, monthKeyOf, publishRank, setJoined, totalsOf, weekKeyOf, withdrawRank,
@@ -16,6 +16,7 @@ const tintOf = (name: string) =>
   TINTS[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % TINTS.length];
 
 export default function Ranking({ records, nickname }: { records: Entry[]; nickname: string }) {
+  const won = useWon();
   const t = useT();
   const [period, setPeriod] = useState<Period>('week');
   const [rows, setRows] = useState<RankRow[]>([]);
@@ -90,7 +91,7 @@ export default function Ranking({ records, nickname }: { records: Entry[]; nickn
                 <b>{row.nickname}{row.me && <em>{t('나')}</em>}</b>
                 <small>{money(row.count)}번 참음 · {money(row.calories)} kcal</small>
               </div>
-              <strong>{money(row.amount)}원</strong>
+              <strong>{won(row.amount)}</strong>
             </li>
           ))}
         </ol>

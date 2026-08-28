@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useT } from './i18n';
+import { useT, useWon } from './i18n';
 
 /** page.tsx 의 RecordItem 중 그래프가 실제로 읽는 필드만. */
 type Entry = { result: string; amount: number; calories?: number; date: string };
@@ -45,6 +45,7 @@ function Chart({ bars, unit, tone, total }: { bars: Bar[]; unit: string; tone: '
 }
 
 export default function SavingsChart({ records }: { records: Entry[] }) {
+  const won = useWon();
   const t = useT();
   const [open, setOpen] = useState(true);
   // new Date() 를 렌더 중에 부르면 리렌더마다 값이 달라진다. 처음 한 번만 잡는다.
@@ -83,13 +84,13 @@ export default function SavingsChart({ records }: { records: Entry[] }) {
     <div className="savings-report">
       <h2 className="report-heading">{t('오늘의 절약')}</h2>
       <div className="report-pair">
-        <article><small>{t('오늘 아낀 돈')}</small><b>{money(todayAmount)}원</b></article>
+        <article><small>{t('오늘 아낀 돈')}</small><b>{won(todayAmount)}</b></article>
         <article className="kcal"><small>{t('오늘 아낀 칼로리')}</small><b>{money(todayCalories)} kcal</b></article>
       </div>
 
       <h2 className="report-heading">{t('누적 절약')}</h2>
       <div className="report-pair">
-        <article><small>{t('누적 절약 금액')}</small><b>{money(totalAmount)}원</b></article>
+        <article><small>{t('누적 절약 금액')}</small><b>{won(totalAmount)}</b></article>
         <article className="kcal"><small>{t('누적 아낀 칼로리')}</small><b>{money(totalCalories)} kcal</b></article>
       </div>
 

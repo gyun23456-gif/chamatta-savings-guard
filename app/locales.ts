@@ -10,6 +10,8 @@
 
 import { enContent, jaContent, zhContent } from './locales-content';
 import { enMenu, jaMenu, zhMenu } from './locales-menu';
+import { enOptions, jaOptions, zhOptions } from './locales-options';
+import { enDesc, jaDesc, zhDesc } from './locales-desc';
 
 export type Lang = 'ko' | 'en' | 'ja' | 'zh';
 
@@ -288,9 +290,9 @@ const zh: Dict = {
 };
 
 export const DICT: Record<Exclude<Lang, 'ko'>, Dict> = {
-  en: { ...en, ...enContent, ...enMenu },
-  ja: { ...ja, ...jaContent, ...jaMenu },
-  zh: { ...zh, ...zhContent, ...zhMenu },
+  en: { ...en, ...enContent, ...enMenu, ...enOptions, ...enDesc },
+  ja: { ...ja, ...jaContent, ...jaMenu, ...jaOptions, ...jaDesc },
+  zh: { ...zh, ...zhContent, ...zhMenu, ...zhOptions, ...zhDesc },
 };
 
 /** 사전에 없으면 한국어 원문을 그대로 돌려준다. */
