@@ -40,3 +40,6 @@ next-env.d.ts
 /work/
 /android-twa/
 .site-tools/
+
+# typescript incremental build cache
+tsconfig.tsbuildinfo

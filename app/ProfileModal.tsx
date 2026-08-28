@@ -49,7 +49,7 @@ export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;
     }
     try{
       const response=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:name})});
-      const payload=await response.json();
+      const payload=await response.json() as {ok?:boolean;nickname?:string;error?:string};
       if(!response.ok)return setError(payload.error??'저장하지 못했어요.');
       onSaved({...profile,nickname:payload.nickname});
     }catch{setError('네트워크 상태를 확인해주세요.')}
