@@ -24,8 +24,7 @@
     {
       "binding": "DB",
       "database_name": "chamatta-db",
-      // 2)에서 받은 실제 값으로 교체. local 전용 실행에서는 아무 값이나 무방.
-      "database_id": "local-dev"
+      "database_id": "c092f069-6d97-43d8-9281-de3ba22bdfb2"
     }
   ],
   "vars": {
