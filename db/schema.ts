@@ -65,3 +65,22 @@ export const userDataSchema = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_savings_goals_user ON savings_goals(user_id, created_at)`
 ];
+
+// 절약 랭킹. 로그인이 아니라 기기 단위로 집계한다(0005_savings_ranks.sql 주석 참고).
+export const rankSchema = [
+  `CREATE TABLE IF NOT EXISTS savings_ranks (
+    device_id TEXT PRIMARY KEY,
+    nickname TEXT NOT NULL,
+    week_key TEXT NOT NULL,
+    week_amount INTEGER NOT NULL DEFAULT 0 CHECK(week_amount >= 0),
+    week_calories INTEGER NOT NULL DEFAULT 0 CHECK(week_calories >= 0),
+    week_count INTEGER NOT NULL DEFAULT 0 CHECK(week_count >= 0),
+    month_key TEXT NOT NULL,
+    month_amount INTEGER NOT NULL DEFAULT 0 CHECK(month_amount >= 0),
+    month_calories INTEGER NOT NULL DEFAULT 0 CHECK(month_calories >= 0),
+    month_count INTEGER NOT NULL DEFAULT 0 CHECK(month_count >= 0),
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_savings_ranks_week ON savings_ranks(week_key, week_amount DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_savings_ranks_month ON savings_ranks(month_key, month_amount DESC)`,
+];

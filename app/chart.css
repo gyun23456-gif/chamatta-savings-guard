@@ -112,3 +112,81 @@
   gap: 6px;
 }
 .chart-axis small { font-size: 9px; color: var(--muted); text-align: center; }
+
+/* 절약 랭킹 */
+.rank-block {
+  margin-top: 15px;
+  padding: 20px 18px 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 23px;
+}
+.rank-block > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rank-block h2 { font-size: 16px; letter-spacing: -.5px; margin: 0; }
+.rank-block > header p { margin: 5px 0 0; font-size: 10px; color: var(--muted); }
+
+.rank-period { display: flex; background: #f3ecea; border-radius: 999px; padding: 3px; flex: none; }
+.rank-period button {
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.rank-period button.on { background: var(--green); color: #fff; }
+
+.rank-list { list-style: none; margin: 15px 0 0; padding: 0; }
+.rank-list li {
+  display: grid;
+  grid-template-columns: 22px 34px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid #f2eceb;
+}
+.rank-list li:last-child { border-bottom: 0; }
+.rank-list li.me { background: #fdf4f3; border-radius: 14px; padding: 11px 8px; }
+.rank-no { font-size: 13px; color: var(--green); text-align: center; }
+.rank-face {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+.rank-list li > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.rank-list li b { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.rank-list li b em {
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--green);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+.rank-list li small { font-size: 9px; color: var(--muted); }
+.rank-list li > strong { font-size: 13px; color: var(--green); white-space: nowrap; }
+
+.rank-empty { margin: 16px 0; font-size: 11px; color: var(--muted); text-align: center; }
+
+.rank-join, .rank-leave {
+  width: 100%;
+  margin-top: 12px;
+  min-height: 46px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.rank-join { border: 0; background: var(--green); color: #fff; }
+.rank-leave { border: 1px solid var(--line); background: #fff; color: var(--muted); }
+.rank-join:disabled, .rank-leave:disabled { opacity: .6; }
+
+.rank-note { margin: 13px 0 0; font-size: 9px; line-height: 1.7; color: var(--muted); }
+.rank-note b { color: var(--ink); }
+.rank-notice { margin: 9px 0 0; font-size: 10px; font-weight: 700; color: var(--green); }
