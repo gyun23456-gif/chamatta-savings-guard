@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useT } from './i18n';
 
 /** page.tsx 의 RecordItem 중 그래프가 실제로 읽는 필드만. */
 type Entry = { result: string; amount: number; calories?: number; date: string };
@@ -14,13 +15,14 @@ const money = (n: number) => n.toLocaleString('ko-KR');
 type Bar = { date: string; label: string; amount: number; calories: number };
 
 function Chart({ bars, unit, tone, total }: { bars: Bar[]; unit: string; tone: 'money' | 'kcal'; total: number }) {
+  const t = useT();
   const values = bars.map(b => (tone === 'money' ? b.amount : b.calories));
   const peak = Math.max(...values, 0);
   return (
     <section className={`chart chart-${tone}`}>
       <header>
-        <b><i aria-hidden />{tone === 'money' ? '절약 금액' : '아낀 칼로리'}</b>
-        <span>전체 <strong>{money(total)}{unit}</strong></span>
+        <b><i aria-hidden />{t(tone === 'money' ? '절약 금액' : '아낀 칼로리')}</b>
+        <span>{t('전체')} <strong>{money(total)}{unit}</strong></span>
       </header>
       <div className="chart-bars">
         {bars.map((bar, i) => {
@@ -43,6 +45,7 @@ function Chart({ bars, unit, tone, total }: { bars: Bar[]; unit: string; tone: '
 }
 
 export default function SavingsChart({ records }: { records: Entry[] }) {
+  const t = useT();
   const [open, setOpen] = useState(true);
   // new Date() 를 렌더 중에 부르면 리렌더마다 값이 달라진다. 처음 한 번만 잡는다.
   const [today] = useState(() => key(new Date()));
@@ -78,22 +81,22 @@ export default function SavingsChart({ records }: { records: Entry[] }) {
 
   return (
     <div className="savings-report">
-      <h2 className="report-heading">오늘의 절약</h2>
+      <h2 className="report-heading">{t('오늘의 절약')}</h2>
       <div className="report-pair">
-        <article><small>오늘 아낀 돈</small><b>{money(todayAmount)}원</b></article>
-        <article className="kcal"><small>오늘 아낀 칼로리</small><b>{money(todayCalories)} kcal</b></article>
+        <article><small>{t('오늘 아낀 돈')}</small><b>{money(todayAmount)}원</b></article>
+        <article className="kcal"><small>{t('오늘 아낀 칼로리')}</small><b>{money(todayCalories)} kcal</b></article>
       </div>
 
-      <h2 className="report-heading">누적 절약</h2>
+      <h2 className="report-heading">{t('누적 절약')}</h2>
       <div className="report-pair">
-        <article><small>누적 절약 금액</small><b>{money(totalAmount)}원</b></article>
-        <article className="kcal"><small>누적 아낀 칼로리</small><b>{money(totalCalories)} kcal</b></article>
+        <article><small>{t('누적 절약 금액')}</small><b>{money(totalAmount)}원</b></article>
+        <article className="kcal"><small>{t('누적 아낀 칼로리')}</small><b>{money(totalCalories)} kcal</b></article>
       </div>
 
       <button className="chart-toggle" onClick={() => setOpen(v => !v)} aria-expanded={open}>
         <div>
-          <b>날짜별 절약 그래프</b>
-          <small>각 날짜에 아낀 금액과 칼로리예요.</small>
+          <b>{t('날짜별 절약 그래프')}</b>
+          <small>{t('각 날짜에 아낀 금액과 칼로리예요.')}</small>
         </div>
         <i className={open ? 'open' : ''} aria-hidden>⌃</i>
       </button>

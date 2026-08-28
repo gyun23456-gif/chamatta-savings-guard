@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { useT } from './i18n';
 import {
   Period, RankRow, Totals,
   deviceId, fetchRanks, isJoined, monthKeyOf, publishRank, setJoined, totalsOf, weekKeyOf, withdrawRank,
@@ -15,6 +16,7 @@ const tintOf = (name: string) =>
   TINTS[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % TINTS.length];
 
 export default function Ranking({ records, nickname }: { records: Entry[]; nickname: string }) {
+  const t = useT();
   const [period, setPeriod] = useState<Period>('week');
   const [rows, setRows] = useState<RankRow[]>([]);
   const [joined, setJoinedState] = useState(false);
@@ -69,12 +71,12 @@ export default function Ranking({ records, nickname }: { records: Entry[]; nickn
     <section className="rank-block">
       <header>
         <div>
-          <h2>절약 랭킹</h2>
-          <p>참여한 기기끼리 모은 순위예요.</p>
+          <h2>{t('절약 랭킹')}</h2>
+          <p>{t('참여한 기기끼리 모은 순위예요.')}</p>
         </div>
         <div className="rank-period">
-          <button className={period === 'week' ? 'on' : ''} onClick={() => setPeriod('week')}>주간</button>
-          <button className={period === 'month' ? 'on' : ''} onClick={() => setPeriod('month')}>월간</button>
+          <button className={period === 'week' ? 'on' : ''} onClick={() => setPeriod('week')}>{t('주간')}</button>
+          <button className={period === 'month' ? 'on' : ''} onClick={() => setPeriod('month')}>{t('월간')}</button>
         </div>
       </header>
 
@@ -85,7 +87,7 @@ export default function Ranking({ records, nickname }: { records: Entry[]; nickn
               <b className="rank-no">{row.rank}</b>
               <span className="rank-face" style={{ background: tintOf(row.nickname) }}>{[...row.nickname][0] ?? '?'}</span>
               <div>
-                <b>{row.nickname}{row.me && <em>나</em>}</b>
+                <b>{row.nickname}{row.me && <em>{t('나')}</em>}</b>
                 <small>{money(row.count)}번 참음 · {money(row.calories)} kcal</small>
               </div>
               <strong>{money(row.amount)}원</strong>
@@ -94,14 +96,14 @@ export default function Ranking({ records, nickname }: { records: Entry[]; nickn
         </ol>
       ) : (
         <p className="rank-empty">
-          {joined ? '아직 이번 기간에 올라온 기록이 없어요.' : '참여하면 다른 사람들의 순위도 함께 볼 수 있어요.'}
+          {t(joined ? '아직 이번 기간에 올라온 기록이 없어요.' : '참여하면 다른 사람들의 순위도 함께 볼 수 있어요.')}
         </p>
       )}
 
       {joined ? (
-        <button className="rank-leave" onClick={leave} disabled={busy}>랭킹에서 빠지기</button>
+        <button className="rank-leave" onClick={leave} disabled={busy}>{t('랭킹에서 빠지기')}</button>
       ) : (
-        <button className="rank-join" onClick={join} disabled={busy}>랭킹 참여하기</button>
+        <button className="rank-join" onClick={join} disabled={busy}>{t('랭킹 참여하기')}</button>
       )}
 
       <p className="rank-note">

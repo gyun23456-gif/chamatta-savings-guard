@@ -1,5 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
+import { useT } from './i18n';
 import {
   AD_BONUS, DAILY_GRANT, Energy, ORDER_COST, REFERRAL_BONUS, REVIEW_BONUS,
   applyCode, normalizeCode,
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export default function EnergyModal({ energy, onChange, onClose, onWriteReview }: Props) {
+  const t = useT();
   const [codeOpen, setCodeOpen] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
@@ -51,8 +53,8 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <div className="modal-handle" />
         <header>
           <div>
-            <span>가상 주문 에너지</span>
-            <h2>에너지 충전</h2>
+            <span>{t('가상 주문 에너지')}</span>
+            <h2>{t('에너지 충전')}</h2>
           </div>
           <button onClick={onClose} aria-label="닫기">×</button>
         </header>
@@ -64,8 +66,8 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <div className="energy-balance">
           <span aria-hidden>⚡</span>
           <div>
-            <small>현재 에너지</small>
-            <b>{energy.unlimited ? '무제한' : `${energy.count}개`}</b>
+            <small>{t('현재 에너지')}</small>
+            <b>{energy.unlimited ? t('무제한') : `${energy.count}개`}</b>
           </div>
           <i>1 주문하기 = ⚡ {ORDER_COST}</i>
         </div>
@@ -102,7 +104,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
           >
             <span aria-hidden>👤</span>
             <div>
-              <b>추천 코드</b>
+              <b>{t('추천 코드')}</b>
               <small>{energy.usedCode ? `${energy.usedCode} 등록 완료` : '나중에 하기를 눌렀다면 여기서 다시 입력할 수 있어요.'}</small>
             </div>
             <i>{energy.usedCode ? '✓' : '›'}</i>
@@ -112,7 +114,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <button className="energy-row" onClick={share}>
           <span aria-hidden>💬</span>
           <div>
-            <b>친구에게 공유하고 충전</b>
+            <b>{t('친구에게 공유하고 충전')}</b>
             <small>초대 링크와 추천 코드를 보내세요.<br />친구가 코드 입력 시 에너지 {REFERRAL_BONUS}개를 받아요.</small>
           </div>
           <i className="energy-plus">+{REFERRAL_BONUS}</i>
@@ -122,7 +124,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <button className="energy-row" onClick={onWriteReview}>
           <span aria-hidden>✍️</span>
           <div>
-            <b>후기 쓰고 충전</b>
+            <b>{t('후기 쓰고 충전')}</b>
             <small>목표를 이룬 후기를 남기면 에너지 {REVIEW_BONUS}개를 받아요.</small>
           </div>
           <i className="energy-plus">+{REVIEW_BONUS}</i>
@@ -131,7 +133,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <button className="energy-row energy-row-off" disabled>
           <span aria-hidden>▶</span>
           <div>
-            <b>보상형 광고 보기</b>
+            <b>{t('보상형 광고 보기')}</b>
             <small>광고를 끝까지 보면 에너지 {AD_BONUS}개를 받아요.<br />앱 스토어 버전에서 준비 중이에요.</small>
           </div>
           <i className="energy-plus">+{AD_BONUS}</i>
@@ -140,7 +142,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
         <button className="energy-row energy-row-off energy-row-paid" disabled>
           <span aria-hidden>∞</span>
           <div>
-            <b>무제한 에너지 &amp; 광고 제거</b>
+            <b>{t('무제한 에너지 & 광고 제거')}</b>
             <small>결제 한 번으로 무제한 에너지와 광고 제거를 모두 이용할 수 있어요.<br />앱 스토어 버전에서 준비 중이에요.</small>
           </div>
           <i>₩3,300</i>

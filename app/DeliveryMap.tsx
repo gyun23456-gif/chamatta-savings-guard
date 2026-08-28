@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useT } from './i18n';
 
 // 배달 화면의 지도 버전. 기존 화면(DeliveryJourney)과 단계·문구는 같고 장면만 다르다.
 //
@@ -23,6 +24,7 @@ const money = (n: number) => n.toLocaleString('ko-KR');
 export default function DeliveryMap({
   amount, calories, pace, onComplete, onCancel,
 }: { amount: number; calories: number; pace: string; onComplete: () => void; onCancel: () => void }) {
+  const t = useT();
   const [stage, setStage] = useState(0);
   const routeRef = useRef<SVGPathElement>(null);
   const [rider, setRider] = useState({ x: 46, y: 44 });
@@ -47,7 +49,7 @@ export default function DeliveryMap({
     <div className="delivery-journey delivery-map-view">
       <header>
         <button onClick={onCancel} aria-label="뒤로">‹</button>
-        <div><small>100% 가상 체험</small><h1>마음 식히는 중</h1></div>
+        <div><small>{t('100% 가상 체험')}</small><h1>{t('마음 식히는 중')}</h1></div>
         <span>{stage + 1}/4</span>
       </header>
 
@@ -85,28 +87,28 @@ export default function DeliveryMap({
 
       <div className="journey-status">
         <span>{stages[stage].icon}</span>
-        <h2>{stages[stage].title}</h2>
-        <p>{stages[stage].text}</p>
+        <h2>{t(stages[stage].title)}</h2>
+        <p>{t(stages[stage].text)}</p>
         <div className="journey-progress"><i style={{ width: `${(stage + 1) * 25}%` }} /></div>
-        <small>{stage < 3 ? `${pace} · 다음 단계로 이동 중` : '가상 배달 완료'}</small>
+        <small>{stage < 3 ? `${pace} · 다음 단계로 이동 중` : t('가상 배달 완료')}</small>
       </div>
 
       <div className="journey-steps">
         {stages.map((x, i) => (
           <div className={i <= stage ? 'active' : ''} key={x.title}>
-            <span>{x.icon}</span><small>{x.label}</small>
+            <span>{x.icon}</span><small>{t(x.label)}</small>
           </div>
         ))}
       </div>
 
       {stage === 3 ? (
         <section className="journey-result">
-          <div><small>이번에 지킨 돈</small><b>{money(amount)}원</b></div>
-          <div><small>피한 예상 열량</small><b>{money(calories)} kcal</b></div>
-          <button onClick={onComplete}>절약 결과 확인하기</button>
+          <div><small>{t('이번에 지킨 돈')}</small><b>{money(amount)}원</b></div>
+          <div><small>{t('피한 예상 열량')}</small><b>{money(calories)} kcal</b></div>
+          <button onClick={onComplete}>{t('절약 결과 확인하기')}</button>
         </section>
       ) : (
-        <button className="journey-skip" onClick={() => setStage(3)}>기다림 건너뛰기</button>
+        <button className="journey-skip" onClick={() => setStage(3)}>{t('기다림 건너뛰기')}</button>
       )}
     </div>
   );

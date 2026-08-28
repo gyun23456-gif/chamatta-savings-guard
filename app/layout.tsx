@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { LangProvider } from './i18n';
 export const metadata: Metadata = {
   title: '참았다!',
   description: '안 쓴 돈이 보이기 시작한다.',
@@ -9,4 +10,4 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: '참았다!', description: '안 쓴 돈이 보이기 시작한다.', images: ['/og.jpg'] },
 };
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#123c2e' };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="ko"><body>{children}</body></html>; }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="ko"><body><LangProvider>{children}</LangProvider></body></html>; }

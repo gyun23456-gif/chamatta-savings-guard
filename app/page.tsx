@@ -11,6 +11,7 @@ import EnergyModal from './EnergyModal';
 import SavingsChart from './SavingsChart';
 import Ranking from './Ranking';
 import DeliveryMap from './DeliveryMap';
+import { useT } from './i18n';
 import { Energy, REVIEW_BONUS, canOrder, earn, loadEnergy, saveEnergy, spend } from './energy';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
@@ -146,6 +147,7 @@ export default function Home() {
   const [adInquiryOpen, setAdInquiryOpen] = useState(false);
   const [profileOpen,setProfileOpen]=useState(false);
   const [settingsOpen,setSettingsOpen]=useState(false);
+  const t = useT();
   const [energy,setEnergy]=useState<Energy|null>(null);
   const [energyOpen,setEnergyOpen]=useState(false);
   // 가상 배달 화면을 지도로 볼지 기존 단계 화면으로 볼지. 설정에서 바꾼다.
@@ -209,7 +211,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       {tab !== 'market' && <header className="topbar">
-        <button className="brand-button" onClick={() => setTab('home')} aria-label="홈으로"><span>ㅊ</span><div><strong>참았다!</strong><small>안 쓴 돈이 보이기 시작한다.</small></div></button>
+        <button className="brand-button" onClick={() => setTab('home')} aria-label="홈으로"><span>ㅊ</span><div><strong>{t('참았다!')}</strong><small>{t('안 쓴 돈이 보이기 시작한다.')}</small></div></button>
         <div className="topbar-right">
           {energy && <button className={`energy-pill${canOrder(energy)?'':' is-empty'}`} onClick={()=>setEnergyOpen(true)} aria-label="에너지 충전"><span aria-hidden>⚡</span>{energy.unlimited?'∞':energy.count}</button>}
           <div className="streak-pill">🔥 {streak}일</div>
@@ -223,11 +225,11 @@ export default function Home() {
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} isAdmin={isAdmin} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openSettings={()=>setSettingsOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
 
       <nav className="bottom-nav" aria-label="주요 메뉴">
-        <NavButton label="홈" icon="⌂" active={tab === 'home'} onClick={() => setTab('home')} />
-        <NavButton label="상점" icon="⊞" active={tab === 'market'} onClick={() => setTab('market')} />
+        <NavButton label={t('홈')} icon="⌂" active={tab === 'home'} onClick={() => setTab('home')} />
+        <NavButton label={t('상점')} icon="⊞" active={tab === 'market'} onClick={() => setTab('market')} />
         <button className="nav-action" onClick={() => setRecordOpen(true)} aria-label="새 기록"><span>＋</span></button>
-        <NavButton label="리포트" icon="▥" active={tab === 'stats' || tab === 'history'} onClick={() => setTab('stats')} />
-        <NavButton label="마이" icon="◇" active={tab === 'goals'} onClick={() => setTab('goals')} />
+        <NavButton label={t('리포트')} icon="▥" active={tab === 'stats' || tab === 'history'} onClick={() => setTab('stats')} />
+        <NavButton label={t('마이')} icon="◇" active={tab === 'goals'} onClick={() => setTab('goals')} />
       </nav>
 
       {recordOpen && <RecordModal onClose={() => setRecordOpen(false)} onSubmit={addRecord} />}
