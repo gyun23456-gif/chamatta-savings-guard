@@ -4,7 +4,11 @@
 // 유일하게 벗어나는 기능이라 기본값이 "참여 안 함"이고, 사용자가 직접 켜야
 // 닉네임과 절약 합계가 올라간다. 끄면 서버에 있던 줄도 지운다.
 
-const DEVICE_KEY = 'chamatta-device-v1';
+import { deviceId } from './device';
+
+// 기기 값은 후기·랭킹이 함께 쓰므로 device.ts 한 곳에서만 만든다.
+export { deviceId };
+
 const OPTIN_KEY = 'chamatta-rank-optin-v1';
 
 export type RankRow = {
@@ -12,31 +16,6 @@ export type RankRow = {
   amount: number; calories: number; count: number; me: boolean;
 };
 export type Period = 'week' | 'month';
-
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-const randomId = (n = 24) => {
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    const buf = new Uint8Array(n);
-    crypto.getRandomValues(buf);
-    return [...buf].map(b => ALPHABET[b % ALPHABET.length]).join('');
-  }
-  return Array.from({ length: n }, () => ALPHABET[Math.floor(Math.random() * ALPHABET.length)]).join('');
-};
-
-/** 이 기기를 가리키는 임의의 값. 계정이 아니라서 사람과 이어지지 않는다. */
-export const deviceId = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const saved = localStorage.getItem(DEVICE_KEY);
-    if (saved && /^[A-Za-z0-9_-]{8,64}$/.test(saved)) return saved;
-    const made = randomId();
-    localStorage.setItem(DEVICE_KEY, made);
-    return made;
-  } catch {
-    return null;
-  }
-};
 
 export const isJoined = (): boolean => {
   if (typeof window === 'undefined') return false;

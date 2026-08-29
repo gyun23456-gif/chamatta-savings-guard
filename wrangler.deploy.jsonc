@@ -27,7 +27,10 @@
       "database_id": "c092f069-6d97-43d8-9281-de3ba22bdfb2"
     }
   ],
-  "vars": {
-    "ADMIN_USER_IDS": ""
-  }
+  // 운영자 키(ADMIN_KEY)는 여기 적지 않는다. 이 파일은 깃에 올라간다.
+  // 시크릿으로 넣는다:
+  //   npx wrangler secret put ADMIN_KEY --config wrangler.deploy.jsonc
+  // 넣지 않으면 운영자 센터는 아무에게도 열리지 않는다(_identity.ts 의 길이 검사).
+  // 앱 쪽에서는 설정 화면의 버전 번호를 일곱 번 눌러 같은 값을 입력한다.
+  "vars": {}
 }

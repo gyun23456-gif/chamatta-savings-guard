@@ -10,7 +10,10 @@
     "build": "vinext build",
     "start": "vinext start",
     "lint": "eslint .",
-    "seed:local": "node scripts/seed-local-d1.mjs"
+    "seed:local": "node scripts/seed-local-d1.mjs",
+    "deploy": "vinext build && wrangler deploy --config wrangler.deploy.jsonc",
+    "deploy:check": "wrangler deploy --dry-run --config wrangler.deploy.jsonc",
+    "db:sql": "wrangler d1 execute chamatta-db --remote --config wrangler.deploy.jsonc --file"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -20,7 +23,6 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",
     "@cloudflare/workers-types": "4.20260515.1",
-    "@openai/sites-vite-plugin": "^0.1.0 || ^0.2.0",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
