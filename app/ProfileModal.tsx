@@ -31,7 +31,7 @@ export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;
         {error&&<p>{error}</p>}
         <button className="submit-button" disabled={nickname.trim().length<2}>이 이름으로 시작하기</button>
         <div className="profile-storage-note">🔒 프로필과 절약 기록은 <b>이 기기에만</b> 저장돼요. 비밀번호는 받지 않으며, 앱을 삭제하면 기록도 함께 사라집니다.</div>
-        <div className="soon-row"><span>💬</span><div><b>카카오로 계속하기</b><small>여러 기기에서 기록을 이어보는 기능이에요</small></div><i>준비 중</i></div>
+        <div className="device-note"><span>💾</span><div><b>새 기기로 옮길 때</b><small>설정 &gt; 기록 백업에서 파일로 내보낸 뒤, 새 기기에서 불러오면 그대로 이어집니다.</small></div></div>
         <button type="button" className="login-later" onClick={onClose}>프로필 없이 둘러보기</button>
       </form>
     </section></div>;
