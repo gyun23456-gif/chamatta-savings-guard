@@ -39,3 +39,16 @@
 
 .review-note{margin-top:14px;border-radius:13px;background:#f4efef;color:var(--muted);font-size:9px;line-height:1.65;padding:11px 12px}
 .review-note b{color:var(--ink)}
+
+/* 가게 상세 화면의 후기 진입 버튼.
+   목록 카드의 별점 줄은 눌러도 되는지 알기 어려워서, 가게를 연 화면에는
+   따로 눈에 띄는 줄을 둔다. 사람들이 후기를 찾는 곳이 여기다. */
+.shop-review-entry{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;width:100%;margin:10px 0 2px;padding:13px 14px;border:1px solid var(--line);border-radius:17px;background:#fff;text-align:left;cursor:pointer}
+.shop-review-entry>span{width:36px;height:36px;border-radius:12px;background:#faf1f1;display:grid;place-items:center;font-size:17px}
+.shop-review-entry>div{display:flex;flex-direction:column;gap:3px}
+.shop-review-entry b{font-size:11px;color:var(--ink)}
+.shop-review-entry small{font-size:8px;color:var(--muted)}
+.shop-review-entry i{font-style:normal;color:var(--muted);font-size:13px}
+
+/* 목록 카드 쪽은 눌러도 된다는 걸 밑줄로만 알린다. 카드 디자인을 흔들지 않으려는 것이다. */
+.shop-review-open{text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--muted) 45%,transparent);text-underline-offset:3px}

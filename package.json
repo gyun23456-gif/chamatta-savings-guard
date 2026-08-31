@@ -11,12 +11,13 @@
     "start": "vinext start",
     "lint": "eslint .",
     "seed:local": "node scripts/seed-local-d1.mjs",
-    "deploy": "vinext build && wrangler deploy --config wrangler.deploy.jsonc",
+    "deploy": "pnpm run typecheck && vinext build && wrangler deploy --config wrangler.deploy.jsonc",
     "deploy:check": "wrangler deploy --dry-run --config wrangler.deploy.jsonc",
     "db:sql": "wrangler d1 execute chamatta-db --remote --config wrangler.deploy.jsonc --file",
-    "build:toss": "vite build --config vite.toss.config.ts",
+    "build:toss": "pnpm run typecheck && vite build --config vite.toss.config.ts",
     "toss:pack": "pnpm run build:toss && ait build",
-    "toss:deploy": "pnpm run toss:pack && ait deploy --profile chamatta"
+    "toss:deploy": "pnpm run toss:pack && ait deploy --profile chamatta",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@apps-in-toss/web-framework": "^3.1.1",

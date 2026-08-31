@@ -14,8 +14,6 @@ const MAX_AMOUNT = 100_000_000;   // 한 기간에 1억원 넘게 아꼈다는 �
 const MAX_CALORIES = 10_000_000;
 const MAX_COUNT = 10_000;
 
-const json = (body: unknown, status = 200) =>
-  Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 
 async function db() {
   try {
