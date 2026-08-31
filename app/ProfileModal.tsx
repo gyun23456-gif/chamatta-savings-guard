@@ -42,17 +42,11 @@ export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;
     e.preventDefault();
     const name=nickname.trim();
     if(name.length<2)return setError('닉네임을 2자 이상 입력해주세요.');
-    if(isLocal){
-      const next={...profile,nickname:name,email:email.trim()||undefined};
-      try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next))}catch{return setError('저장하지 못했어요.')}
-      return onSaved(next);
-    }
-    try{
-      const response=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nickname:name})});
-      const payload=await response.json() as {ok?:boolean;nickname?:string;error?:string};
-      if(!response.ok)return setError(payload.error??'저장하지 못했어요.');
-      onSaved({...profile,nickname:payload.nickname});
-    }catch{setError('네트워크 상태를 확인해주세요.')}
+    // 계정을 없앤 뒤로 프로필은 언제나 이 기기에만 있다. 서버로 보내던
+    // 갈래가 남아 있었는데, 그 라우트를 지웠으니 함께 걷어낸다.
+    const next={...profile,nickname:name,email:email.trim()||undefined};
+    try{localStorage.setItem(LOCAL_KEY,JSON.stringify(next))}catch{return setError('저장하지 못했어요.')}
+    onSaved(next);
   };
   const removeProfile=()=>{try{localStorage.removeItem(LOCAL_KEY)}catch{/* 무시 */}onSaved({authenticated:false})};
 

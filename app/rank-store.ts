@@ -5,6 +5,7 @@
 // 닉네임과 절약 합계가 올라간다. 끄면 서버에 있던 줄도 지운다.
 
 import { deviceId } from './device';
+import { req } from './net';
 
 // 기기 값은 후기·랭킹이 함께 쓰므로 device.ts 한 곳에서만 만든다.
 export { deviceId };
@@ -71,7 +72,7 @@ export const totalsOf = (records: Entry[], now: Date): Totals => {
 export const fetchRanks = async (period: Period, key: string, device: string | null): Promise<RankRow[]> => {
   const params = new URLSearchParams({ period, key });
   if (device) params.set('device', device);
-  const response = await fetch(`/api/ranking?${params}`);
+  const response = await req(`/api/ranking?${params}`);
   if (!response.ok) return [];
   const payload = await response.json() as { ranks?: RankRow[] };
   return payload.ranks ?? [];
@@ -80,7 +81,7 @@ export const fetchRanks = async (period: Period, key: string, device: string | n
 export const publishRank = async (
   device: string, nickname: string, now: Date, totals: Totals,
 ): Promise<boolean> => {
-  const response = await fetch('/api/ranking', {
+  const response = await req('/api/ranking', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -93,6 +94,6 @@ export const publishRank = async (
 };
 
 export const withdrawRank = async (device: string): Promise<boolean> => {
-  const response = await fetch(`/api/ranking?device=${encodeURIComponent(device)}`, { method: 'DELETE' });
+  const response = await req(`/api/ranking?device=${encodeURIComponent(device)}`, { method: 'DELETE' });
   return response.ok;
 };

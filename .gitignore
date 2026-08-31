@@ -43,3 +43,7 @@ next-env.d.ts
 
 # typescript incremental build cache
 tsconfig.tsbuildinfo
+
+# 앱인토스 빌드 산출물
+/dist-toss/
+*.ait

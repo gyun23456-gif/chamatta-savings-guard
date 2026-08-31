@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <!-- 미니앱은 토스 앱 안에서 열린다. 확대를 막아야 탭이 밀리지 않는다. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#b82024" />
+    <title>참았다!</title>
+    <!--
+      워커에 올리는 웹과 달리 여기엔 openGraph 메타가 없다.
+      미니앱은 링크로 공유되는 페이지가 아니라 토스 앱 안에서 실행되므로
+      썸네일을 읽어갈 크롤러가 없다. 대신 콘솔에 등록한 앱 정보가 그 역할을 한다.
+    -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

@@ -4,12 +4,12 @@
 // 번들만 토스가 가져가고 API 는 여전히 이 워커가 받으므로, 브라우저가
 // 교차 출처 요청으로 취급한다. 허용 헤더가 없으면 후기·랭킹이 전부 막힌다.
 //
-// 문서마다 허용해야 할 호스트를 다르게 적어놨다(apps.tossmini.com 과
-// web.tossmini.com). 어느 쪽이 맞는지 확정될 때까지 tossmini.com 하위를
-// 통째로 받는다. 토스 소유 도메인이라 위험하지 않다.
+// 미니앱 appName 은 chamatta 다(앱인토스 콘솔, 수정 불가).
+// 문서가 호스트를 두 가지로 적어놔서(apps / web) 둘 다 받는다.
+// private- 접두사는 콘솔 QR 로 여는 테스트 환경이다.
 
 const ALLOWED = [
-  /^https:\/\/([a-z0-9-]+\.)*tossmini\.com$/,
+  /^https:\/\/chamatta\.(private-)?(apps|web)\.tossmini\.com$/,
   /^https:\/\/chamatta\.gyun23456\.workers\.dev$/,
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/,
