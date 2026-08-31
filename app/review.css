@@ -1,0 +1,41 @@
+/* 가게별 후기 시트.
+   목록 카드의 별점 줄이 이 시트를 여는 버튼이 됐다. 겉모습은 원래 글자 그대로 두어
+   카드 디자인이 흔들리지 않게 한다. */
+.shop-review-open{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.shop-review-open i{font-style:normal}
+
+.review-sheet{max-height:86vh;overflow-y:auto}
+.review-sheet header p{font-size:9px;color:var(--muted);margin-top:4px}
+
+.review-form{display:flex;flex-direction:column;gap:9px;padding:4px 0 2px}
+.review-stars{display:flex;gap:6px}
+.review-stars button{width:44px;height:44px;border:1px solid var(--line);border-radius:13px;background:#fff;font-size:22px;color:#d9d2d0;line-height:1}
+.review-stars button.on{color:#f5a623;border-color:#f5a623;background:#fffaf0}
+.review-form textarea{min-height:96px;border:1px solid var(--line);border-radius:14px;padding:11px 12px;font-size:11px;line-height:1.6;resize:vertical;background:#fff;color:var(--ink);font-family:inherit}
+.review-count{align-self:flex-end;font-size:8px;color:var(--muted)}
+.review-cancel{border:0;background:none;color:var(--muted);font-size:10px;padding:6px}
+
+.review-mine{border:1px solid var(--line);border-radius:16px;padding:13px;background:#faf7f6}
+.review-mine b{font-size:10px;color:var(--muted)}
+.review-mine>p{font-size:11px;line-height:1.6;margin:7px 0}
+.review-stars-read{color:#f5a623;font-size:13px;letter-spacing:1px}
+.review-stars-read span{color:#ddd6d4}
+.review-mine>div{display:flex;gap:8px;margin-top:9px}
+.review-mine>div button{flex:1;min-height:38px;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:10px;font-weight:800;color:var(--ink)}
+.review-mine .review-remove{color:var(--danger,#b82024);border-color:color-mix(in srgb,var(--danger,#b82024) 34%,var(--line))}
+
+.review-notice{font-size:9px;color:var(--green,#2f8a5b);padding:8px 2px;line-height:1.5}
+
+.review-list{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.review-list article{border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+.review-list article.mine{border-color:color-mix(in srgb,var(--danger,#b82024) 30%,var(--line));background:#fffafa}
+.review-list header{display:flex;align-items:center;gap:7px;margin-bottom:6px;padding:0;border:0}
+.review-list header b{font-size:10px}
+.review-list header b em{font-style:normal;margin-left:5px;font-size:8px;background:var(--danger,#b82024);color:#fff;border-radius:6px;padding:2px 5px}
+.review-list header span{font-size:10px;color:#f5a623;letter-spacing:1px}
+.review-list header small{margin-left:auto;font-size:8px;color:var(--muted)}
+.review-list article p{font-size:11px;line-height:1.65;color:var(--ink)}
+.review-empty{font-size:10px;color:var(--muted);text-align:center;padding:22px 0}
+
+.review-note{margin-top:14px;border-radius:13px;background:#f4efef;color:var(--muted);font-size:9px;line-height:1.65;padding:11px 12px}
+.review-note b{color:var(--ink)}

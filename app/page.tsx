@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, Fragment, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import ProfileModal from './ProfileModal';
 import SavingsModal, { SavingsQueue } from './SavingsModal';
 import CustomMenuModal from './CustomMenuModal';
@@ -9,6 +9,7 @@ import DeliveryJourney from './DeliveryJourney';
 import SettingsModal from './SettingsModal';
 import EnergyModal from './EnergyModal';
 import SavingsChart from './SavingsChart';
+import ShopReviewsModal from './ShopReviewsModal';
 import Ranking from './Ranking';
 import DeliveryMap from './DeliveryMap';
 import { useT, useWon } from './i18n';
@@ -137,7 +138,6 @@ const shopPhotoSet = (shop: Shop): { index: number; zoom: number }[] => {
   });
 };
 const foodPhotoStyle=(index:number)=>({'--photo-x':`${(index%PHOTO_COLUMNS)*(100/(PHOTO_COLUMNS-1))}%`,'--photo-y':`${Math.floor(index/PHOTO_COLUMNS)*(100/(PHOTO_ROWS-1))}%`} as React.CSSProperties);
-const reviewCount = (shop: Shop) => Math.round(shop.rating * 317) + (hashOf(shop.id) % 900);
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>('home');
@@ -227,7 +227,7 @@ export default function Home() {
       </header>}
 
       {tab === 'home' && <HomeView monthSaved={monthSaved} todaySaved={todaySaved} totalSaved={totalSaved} streak={streak} records={data.records} goals={data.goals} openRecord={() => setRecordOpen(true)} goMarket={() => setTab('market')} goHistory={() => setTab('history')} goGoals={() => setTab('goals')} />}
-      {tab === 'market' && <MarketView deliveryView={deliveryView} energy={energy} spendEnergy={()=>{ if(energy) updateEnergy(spend(energy)); }} openEnergy={()=>setEnergyOpen(true)} cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
+      {tab === 'market' && <MarketView deliveryView={deliveryView} energy={energy} spendEnergy={()=>{ if(energy) updateEnergy(spend(energy)); }} openEnergy={()=>setEnergyOpen(true)} earnEnergy={updateEnergy} nickname={profile.nickname || '익명의 방어자'} cart={cart} setCart={setCart} stories={communityStories} openStory={() => setStoryOpen(true)} openAdInquiry={() => setAdInquiryOpen(true)} openSettings={() => setSettingsOpen(true)} finishOrder={(result, total, memo, calories) => { addRecord({ category:'배달', amount:total, memo, result, date:dateKey(), calories }); setCart([]); }} />}
       {tab === 'history' && <HistoryView records={data.records} selectedDate={historyDate} setSelectedDate={setHistoryDate} removeRecord={removeRecord} goStats={() => setTab('stats')} />}
       {tab === 'stats' && <StatsView nickname={profile.nickname || '익명의 방어자'} allRecords={data.records} records={monthRecords} savedAmount={monthSaved} rate={defenseRate} totalSaved={totalSaved} savings={savings} openSavings={(mode)=>setSavingsMode(mode)} goHistory={() => setTab('history')} />}
       {tab === 'goals' && <GoalsView goals={data.goals} totalSaved={totalSaved} profile={profile} savings={savings} isAdmin={isAdmin} openSavings={(mode)=>setSavingsMode(mode)} openProfile={()=>setProfileOpen(true)} openSettings={()=>setSettingsOpen(true)} openGoal={() => setGoalOpen(true)} openAdmin={() => setAdminOpen(true)} removeGoal={(id) => setData(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }))} />}
@@ -300,7 +300,7 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
   </div>;
 }
 
-function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder, energy, spendEnergy, openEnergy, deliveryView }: { deliveryView: 'map' | 'classic'; energy: Energy | null; spendEnergy: () => void; openEnergy: () => void; cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
+function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder, energy, spendEnergy, openEnergy, earnEnergy, nickname, deliveryView }: { deliveryView: 'map' | 'classic'; energy: Energy | null; spendEnergy: () => void; openEnergy: () => void; earnEnergy: (next: Energy) => void; nickname: string; cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
   const won = useWon();
   const t = useT();
   const [step, setStep] = useState<'list'|'shop'|'cart'|'checkout'>('list');
@@ -310,6 +310,20 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
   const [query, setQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selected, setSelected] = useState<Shop | null>(null);
+  // 가게별 후기. 목록에는 개수만 필요하고, 열었을 때만 내용을 가져온다.
+  const [reviewShop, setReviewShop] = useState<Shop | null>(null);
+  const [reviewCounts, setReviewCounts] = useState<Record<string, number>>({});
+  const loadReviewCounts = useCallback(() => {
+    req('/api/shop-reviews')
+      .then(r => r.ok ? r.json() as Promise<{ counts?: Record<string, number> }> : Promise.reject())
+      .then(payload => setReviewCounts(payload.counts ?? {}))
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => { loadReviewCounts(); }, [loadReviewCounts]);
+  const reviewLabel = (id: string) => {
+    const n = reviewCounts[id] ?? 0;
+    return n ? `${t('후기')} ${n}${t('개')}` : t('첫 후기 남기기');
+  };
   const [payMethod, setPayMethod] = useState('간편결제');
   const [pace,setPace]=useState('천천히 생각');
   const [optionMenu,setOptionMenu]=useState<{menu:MenuItem;shop:Shop}|null>(null);
@@ -362,8 +376,9 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
         <span className={`shop-photo sub zoom-${photos[1].zoom}`} style={foodPhotoStyle(photos[1].index)} />
         <span className={`shop-photo sub zoom-${photos[2].zoom}`} style={foodPhotoStyle(photos[2].index)} />
       </div>
-      <div className="shop-card-copy"><div><h2>{t(s.name)}</h2><strong>{t(s.time)}</strong></div><p><b>★ {s.rating}</b> · {money(reviewCount(s))} {t('리뷰')} <i>›</i></p><footer><span>{t(s.category)}</span><small>{t('배달비')} {s.delivery ? `${won(s.delivery)}` : t('무료')}</small></footer></div>
+      <div className="shop-card-copy"><div><h2>{t(s.name)}</h2><strong>{t(s.time)}</strong></div><p><button type="button" className="shop-review-open" onClick={e=>{e.stopPropagation();setReviewShop(s)}}><b>★ {s.rating}</b> · {reviewLabel(s.id)} <i>›</i></button></p><footer><span>{t(s.category)}</span><small>{t('배달비')} {s.delivery ? `${won(s.delivery)}` : t('무료')}</small></footer></div>
     </article>; }) : <Empty icon="🔎" title="검색 결과가 없어요" text="다른 음식이나 상점 이름을 검색해보세요." action="검색 초기화" onAction={()=>{setQuery('');setFilter('전체')}}/>}</section>
+    {reviewShop&&<ShopReviewsModal shopId={reviewShop.id} shopName={t(reviewShop.name)} nickname={nickname} energy={energy} onEnergy={earnEnergy} onChanged={loadReviewCounts} onClose={()=>setReviewShop(null)}/>}
     {customMenuOpen&&<CustomMenuModal onClose={()=>setCustomMenuOpen(false)} onAdd={menu=>{setCustomMenus(v=>[menu,...v]);setCustomMenuOpen(false);setFilter('전체')}}/>}
   </div>;
 }

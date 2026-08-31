@@ -84,3 +84,18 @@ export const rankSchema = [
   `CREATE INDEX IF NOT EXISTS idx_savings_ranks_week ON savings_ranks(week_key, week_amount DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_savings_ranks_month ON savings_ranks(month_key, month_amount DESC)`,
 ];
+
+// 가게별 후기. 목표 달성 후기(stories)와 별개로, 특정 가게를 두고 남기는 한 줄이다.
+// 한 기기가 한 가게에 하나만 쓸 수 있고 다시 쓰면 덮어쓴다.
+export const shopReviewSchema = [
+  `CREATE TABLE IF NOT EXISTS shop_reviews (
+    shop_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    nickname TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (shop_id, device_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_shop_reviews_shop ON shop_reviews(shop_id, created_at DESC)`,
+];

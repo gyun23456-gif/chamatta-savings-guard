@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     'out/**',
     'build/**',
     'dist/**',
+    'dist-toss/**',
     'outputs/**',
     'android-twa/**',
     'next-env.d.ts',
