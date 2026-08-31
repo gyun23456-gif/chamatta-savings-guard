@@ -1,3 +1,4 @@
+import { json, preflight } from '../_cors';
 import { rankSchema } from '../../../db/schema';
 
 // 절약 랭킹은 로그인이 아니라 기기 단위다. oai-authenticated-user-id 헤더는
@@ -58,11 +59,11 @@ export async function GET(request: Request) {
   const valid = period === 'week'
     ? cleanKey(key, /^\d{4}-W\d{2}$/)
     : cleanKey(key, /^\d{4}-\d{2}$/);
-  if (!valid) return json({ error: '기간 값이 올바르지 않습니다.' }, 400);
+  if (!valid) return json(request, { error: '기간 값이 올바르지 않습니다.' }, 400);
 
   const d = await db();
   // 로컬 미리보기에는 D1이 없다. 화면이 깨지지 않게 빈 목록을 준다.
-  if (!d) return json({ ranks: [], period, key: valid, localPreview: true });
+  if (!d) return json(request, { ranks: [], period, key: valid, localPreview: true });
 
   const column = period === 'week' ? 'week' : 'month';
   const result = await d.prepare(
@@ -83,7 +84,7 @@ export async function GET(request: Request) {
     me: me !== null && row.device_id === me,
   }));
 
-  return json({ ranks, period, key: valid });
+  return json(request, { ranks, period, key: valid });
 }
 
 export async function PUT(request: Request) {
@@ -91,16 +92,16 @@ export async function PUT(request: Request) {
   try {
     body = await request.json() as Record<string, unknown>;
   } catch {
-    return json({ error: '요청을 읽지 못했습니다.' }, 400);
+    return json(request, { error: '요청을 읽지 못했습니다.' }, 400);
   }
 
   const device = cleanDevice(body.device);
   const weekKey = cleanKey(body.weekKey, /^\d{4}-W\d{2}$/);
   const monthKey = cleanKey(body.monthKey, /^\d{4}-\d{2}$/);
-  if (!device || !weekKey || !monthKey) return json({ error: '요청 값이 올바르지 않습니다.' }, 400);
+  if (!device || !weekKey || !monthKey) return json(request, { error: '요청 값이 올바르지 않습니다.' }, 400);
 
   const d = await db();
-  if (!d) return json({ ok: true, localPreview: true });
+  if (!d) return json(request, { ok: true, localPreview: true });
 
   await d.prepare(
     `INSERT INTO savings_ranks
@@ -120,15 +121,17 @@ export async function PUT(request: Request) {
     monthKey, clamp(body.monthAmount, MAX_AMOUNT), clamp(body.monthCalories, MAX_CALORIES), clamp(body.monthCount, MAX_COUNT),
   ).run();
 
-  return json({ ok: true });
+  return json(request, { ok: true });
 }
 
 // 랭킹에서 빠지고 싶을 때. 개인정보처리방침의 삭제 요청 권리와 짝이다.
 export async function DELETE(request: Request) {
   const device = cleanDevice(new URL(request.url).searchParams.get('device'));
-  if (!device) return json({ error: '기기 값이 올바르지 않습니다.' }, 400);
+  if (!device) return json(request, { error: '기기 값이 올바르지 않습니다.' }, 400);
   const d = await db();
-  if (!d) return json({ ok: true, localPreview: true });
+  if (!d) return json(request, { ok: true, localPreview: true });
   await d.prepare('DELETE FROM savings_ranks WHERE device_id = ?').bind(device).run();
-  return json({ ok: true });
+  return json(request, { ok: true });
 }
+
+export const OPTIONS = preflight;
