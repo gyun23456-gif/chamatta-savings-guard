@@ -31,7 +31,7 @@ const describe=(backup:Backup):Preview=>{
   return {backup,records:app?.records?.length??0,goals:app?.goals?.length??0,nickname:profile?.nickname};
 };
 // 계정이 없어서 "가입한 이메일"을 물을 수 없다. 서버에 남는 건 후기와 랭킹뿐이다.
-const DELETE_MAIL='mailto:gyun23456@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EB%82%B4%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD&body=%EC%82%AD%EC%A0%9C%EB%A5%BC%20%EC%9B%90%ED%95%98%EB%8A%94%20%ED%9B%84%EA%B8%B0%EB%82%98%20%EB%9E%AD%ED%82%B9%20%EA%B8%B0%EB%A1%9D%EC%9D%84%20%EC%95%8C%EB%A0%A4%EC%A3%BC%EC%84%B8%EC%9A%94.%20%EC%95%B1%EC%97%90%20%EC%A0%80%EC%9E%A5%EB%90%9C%20%EA%B8%B0%EB%A1%9D%EC%9D%80%20%EC%84%A4%EC%A0%95%20%3E%20%EB%82%B4%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%EB%A1%9C%20%EC%A7%81%EC%A0%91%20%EC%A7%80%EC%9A%B0%EC%8B%A4%20%EC%88%98%20%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4.';
+const DELETE_MAIL='mailto:nomu5.help@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EB%82%B4%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD&body=%EC%82%AD%EC%A0%9C%EB%A5%BC%20%EC%9B%90%ED%95%98%EB%8A%94%20%ED%9B%84%EA%B8%B0%EB%82%98%20%EB%9E%AD%ED%82%B9%20%EA%B8%B0%EB%A1%9D%EC%9D%84%20%EC%95%8C%EB%A0%A4%EC%A3%BC%EC%84%B8%EC%9A%94.%20%EC%95%B1%EC%97%90%20%EC%A0%80%EC%9E%A5%EB%90%9C%20%EA%B8%B0%EB%A1%9D%EC%9D%80%20%EC%84%A4%EC%A0%95%20%3E%20%EB%82%B4%20%EB%8D%B0%EC%9D%B4%ED%84%B0%20%EC%82%AD%EC%A0%9C%EB%A1%9C%20%EC%A7%81%EC%A0%91%20%EC%A7%80%EC%9A%B0%EC%8B%A4%20%EC%88%98%20%EC%9E%88%EC%8A%B5%EB%8B%88%EB%8B%A4.';
 
 export default function SettingsModal({profile,openProfile,onClose,energy,openEnergy,deliveryView,setDeliveryView}:{deliveryView:'map'|'classic';setDeliveryView:(v:'map'|'classic')=>void;energy:EnergyView|null;openEnergy:()=>void;profile:Profile;openProfile:()=>void;onClose:()=>void}){
   const { lang, setLang, t } = useLang();
@@ -149,7 +149,7 @@ export default function SettingsModal({profile,openProfile,onClose,energy,openEn
     <section className="settings-group compact"><h3>{t('서비스 안내')}</h3>
       <div className="virtual-notice">이 앱의 상점·메뉴·주문·결제·배달은 <b>모두 가상</b>입니다. 실제 음식이 배달되거나 금액이 결제되지 않으며, 은행 이체는 사용자가 직접 은행 앱에서 진행합니다.</div>
       <a href="/privacy">개인정보처리방침 <span>›</span></a>
-      <a href="mailto:gyun23456@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EB%AC%B8%EC%9D%98">문의하기 <span>›</span></a>
+      <a href="mailto:nomu5.help@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EB%AC%B8%EC%9D%98">문의하기 <span>›</span></a>
       <button type="button" className="app-version" onClick={()=>setTaps(n=>n+1)}>버전 {APP_VERSION}</button>
       {taps>=7&&<div className="admin-key">
         <b>운영자 키</b>
