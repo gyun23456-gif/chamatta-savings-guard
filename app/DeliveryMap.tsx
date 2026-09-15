@@ -49,7 +49,7 @@ export default function DeliveryMap({
   return (
     <div className="delivery-journey delivery-map-view">
       <header>
-        <button onClick={onCancel} aria-label="뒤로">‹</button>
+        <button className="app-back" onClick={onCancel} aria-label="뒤로">‹</button>
         <div><small>{t('100% 가상 체험')}</small><h1>{t('마음 식히는 중')}</h1></div>
         <span>{stage + 1}/4</span>
       </header>

@@ -24,6 +24,8 @@ import PolicyBody from '../app/privacy/PolicyBody';
 provideRewardedAd(tossRewardedAd);
 // 초대 공유는 토스 공유 시트와 토스에서 열리는 링크로 보낸다.
 provideSharer(tossShare);
+// 토스 내비게이션 바가 뒤로가기를 주므로 앱 자체 ‹ 버튼은 숨긴다(globals.css 의 .app-back).
+document.documentElement.setAttribute('data-in-toss', '');
 
 // 라우터라고 할 것도 없는 두 화면짜리 전환.
 //
