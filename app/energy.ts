@@ -13,6 +13,7 @@ export const DAILY_GRANT = 3;     // 앱을 켠 날마다
 export const REFERRAL_BONUS = 6;  // 추천 코드를 입력했을 때
 export const REVIEW_BONUS = 1;    // 후기를 남겼을 때
 export const AD_BONUS = 3;        // 보상형 광고를 끝까지 봤을 때
+export const SHARE_BONUS = 3;     // 친구에게 초대 문구를 보냈을 때. 하루 한 번
 
 export type Energy = {
   count: number;
@@ -26,6 +27,12 @@ export type Energy = {
   invited: number;
   /** 결제로 무제한 해제 */
   unlimited: boolean;
+  /**
+   * 마지막으로 공유 보상을 받은 날(YYYY-MM-DD).
+   * 공유했는지는 확인할 방법이 없어 누르기만 하면 받을 수 있으므로, 하루 한 번으로 묶는다.
+   * 앱인토스 문서도 공유 보상에는 중복 참여·어뷰징 방지가 필수라고 적고 있다.
+   */
+  lastShareReward: string;
 };
 
 const day = (d = new Date()) =>
@@ -54,6 +61,7 @@ export const blankEnergy = (): Energy => ({
   usedCode: null,
   invited: 0,
   unlimited: false,
+  lastShareReward: '',
 });
 
 /**
@@ -78,12 +86,22 @@ export const loadEnergy = (): Energy | null => {
     usedCode: typeof stored.usedCode === 'string' ? stored.usedCode : null,
     invited: Number.isFinite(stored.invited) ? Math.max(0, Number(stored.invited)) : 0,
     unlimited: stored.unlimited === true,
+    lastShareReward: typeof stored.lastShareReward === 'string' ? stored.lastShareReward : '',
   };
 
   const today = day();
   if (base.lastGrant !== today) return { ...base, count: base.count + DAILY_GRANT, lastGrant: today };
   return base;
 };
+
+/** 오늘 공유 보상을 아직 안 받았는지. */
+export const canShareReward = (energy: Energy) => energy.lastShareReward !== day();
+
+/** 공유 보상을 주고 오늘 받았다고 적는다. 오늘 이미 받았으면 그대로 돌려준다. */
+export const grantShareReward = (energy: Energy): Energy =>
+  canShareReward(energy)
+    ? { ...earn(energy, SHARE_BONUS), lastShareReward: day() }
+    : energy;
 
 export const saveEnergy = (energy: Energy) => {
   if (typeof window === 'undefined') return;

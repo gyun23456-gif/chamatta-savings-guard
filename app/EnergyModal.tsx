@@ -3,9 +3,10 @@ import { FormEvent, useState } from 'react';
 import { useT } from './i18n';
 import {
   AD_BONUS, DAILY_GRANT, Energy, ORDER_COST, REFERRAL_BONUS, REVIEW_BONUS,
-  applyCode, earn, normalizeCode,
+  SHARE_BONUS, applyCode, canShareReward, earn, grantShareReward, normalizeCode,
 } from './energy';
 import { hasAdRuntime, rewardedAd } from './rewarded-ad';
+import { shareInvite } from './share';
 
 type Props = {
   energy: Energy;
@@ -50,21 +51,22 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
     setError('');
   };
 
+  // 공유 이벤트: 초대 문구를 보내면 하루 한 번 SHARE_BONUS 를 준다.
+  // 시트를 닫았거나 공유·복사가 전부 안 됐으면 주지 않는다.
   const share = async () => {
     const text = `참았다! 에서 배달 충동을 참아보세요.\n제 추천 코드: ${energy.code}`;
-    const url = typeof window !== 'undefined' ? window.location.origin : '';
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ title: '참았다!', text, url });
-        return;
-      }
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      setShared('초대 문구를 복사했어요. 친구에게 붙여넣어 보내주세요.');
-    } catch {
-      // 공유 시트를 닫은 경우도 여기로 온다. 실패로 취급하지 않는다.
-      setShared(`추천 코드 ${energy.code} 를 friend 에게 알려주세요.`);
+    const outcome = await shareInvite(text);
+    if (outcome === 'cancelled') return;
+    if (outcome === 'failed') return setShared(`추천 코드 ${energy.code} 를 친구에게 알려주세요.`);
+    const lead = outcome === 'copied' ? '초대 문구를 복사했어요. 친구에게 붙여넣어 보내주세요. ' : '';
+    if (canShareReward(energy)) {
+      onChange(grantShareReward(energy));
+      setShared(`${lead}공유 보상으로 에너지 ${SHARE_BONUS}개를 받았어요.`);
+    } else {
+      setShared(`${lead}공유 보상은 하루 한 번이라 내일 다시 받을 수 있어요.`);
     }
   };
+  const shareRewardReady = canShareReward(energy);
 
   return (
     <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose()}>
@@ -134,9 +136,12 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
           <span aria-hidden>💬</span>
           <div>
             <b>{t('친구에게 공유하고 충전')}</b>
-            <small>초대 링크와 추천 코드를 보내세요.<br />친구가 코드 입력 시 에너지 {REFERRAL_BONUS}개를 받아요.</small>
+            <small>
+              {shareRewardReady ? `초대 문구를 보내면 오늘 에너지 ${SHARE_BONUS}개를 받아요.` : '오늘 공유 보상을 받았어요. 내일 다시 받을 수 있어요.'}
+              <br />친구가 내 코드를 입력하면 친구도 에너지 {REFERRAL_BONUS}개를 받아요.
+            </small>
           </div>
-          <i className="energy-plus">+{REFERRAL_BONUS}</i>
+          <i className={shareRewardReady ? 'energy-plus' : undefined}>{shareRewardReady ? `+${SHARE_BONUS}` : '✓'}</i>
         </button>
         {shared && <p className="energy-note">{shared}</p>}
 
