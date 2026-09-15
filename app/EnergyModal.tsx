@@ -3,8 +3,9 @@ import { FormEvent, useState } from 'react';
 import { useT } from './i18n';
 import {
   AD_BONUS, DAILY_GRANT, Energy, ORDER_COST, REFERRAL_BONUS, REVIEW_BONUS,
-  applyCode, normalizeCode,
+  applyCode, earn, normalizeCode,
 } from './energy';
+import { hasAdRuntime, rewardedAd } from './rewarded-ad';
 
 type Props = {
   energy: Energy;
@@ -20,6 +21,24 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [shared, setShared] = useState('');
+  const [adBusy, setAdBusy] = useState(false);
+  const [adNotice, setAdNotice] = useState('');
+  // 토스 미니앱에서 광고 그룹 ID 가 준비됐을 때만 있다. 워커 웹에서는 늘 null.
+  const ad = rewardedAd();
+
+  const watchAd = async () => {
+    if (!ad || adBusy) return;
+    setAdBusy(true);
+    setAdNotice('');
+    // 보상은 광고 쪽이 "끝까지 봤다"고 확정한 순간에만 준다(userEarnedReward).
+    const outcome = await ad.show(() => onChange(earn(energy, AD_BONUS)));
+    setAdBusy(false);
+    setAdNotice(
+      outcome === 'rewarded' ? `에너지 ${AD_BONUS}개를 받았어요.`
+        : outcome === 'closed' ? '광고를 끝까지 보면 에너지를 받을 수 있어요.'
+          : '지금은 광고를 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
+    );
+  };
 
   const submitCode = (e: FormEvent) => {
     e.preventDefault();
@@ -130,14 +149,18 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
           <i className="energy-plus">+{REVIEW_BONUS}</i>
         </button>
 
-        <button className="energy-row energy-row-off" disabled>
+        <button className={`energy-row${ad ? '' : ' energy-row-off'}`} onClick={watchAd} disabled={!ad || adBusy}>
           <span aria-hidden>▶</span>
           <div>
             <b>{t('보상형 광고 보기')}</b>
-            <small>광고를 끝까지 보면 에너지 {AD_BONUS}개를 받아요.<br />앱 스토어 버전에서 준비 중이에요.</small>
+            <small>
+              광고를 끝까지 보면 에너지 {AD_BONUS}개를 받아요.
+              {adBusy ? <><br />광고를 불러오는 중이에요…</> : !ad && <><br />{hasAdRuntime() ? '곧 열릴 예정이에요.' : '토스 앱의 참았다!에서 볼 수 있어요.'}</>}
+            </small>
           </div>
           <i className="energy-plus">+{AD_BONUS}</i>
         </button>
+        {adNotice && <p className="energy-note">{adNotice}</p>}
 
         <button className="energy-row energy-row-off energy-row-paid" disabled>
           <span aria-hidden>∞</span>

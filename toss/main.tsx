@@ -12,6 +12,11 @@ import { createRoot } from 'react-dom/client';
 import { closeView, graniteEvent } from '@apps-in-toss/web-framework';
 import '../app/globals.css';
 import { goBack, useBackLayer } from '../app/back';
+import { provideRewardedAd } from '../app/rewarded-ad';
+import { tossRewardedAd } from './rewarded-ad';
+
+// 에너지 화면의 "보상형 광고 보기"가 쓸 광고. 워커 웹에는 이 줄이 없어 광고가 없다.
+provideRewardedAd(tossRewardedAd);
 import { LangProvider } from '../app/i18n';
 import Home from '../app/page';
 import PolicyBody from '../app/privacy/PolicyBody';
