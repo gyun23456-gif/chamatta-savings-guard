@@ -16,6 +16,7 @@ import { useT, useWon } from './i18n';
 import { Energy, REVIEW_BONUS, canOrder, earn, loadEnergy, saveEnergy, spend } from './energy';
 import { adminHeaders, adminKey, deviceHeaders, deviceId } from './device';
 import { IN_TOSS, req } from './net';
+import { useBackLayer } from './back';
 
 type Tab = 'home' | 'market' | 'history' | 'stats' | 'goals';
 type Result = 'saved' | 'spent';
@@ -168,6 +169,20 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
 
+  // 토스 미니앱의 시스템 뒤로가기가 닫을 화면들(app/back.ts). 탭을 맨 먼저 올려야
+  // 탭 이동과 모달 열기가 한 번에 일어나도 모달이 위에 쌓인다.
+  useBackLayer(tab !== 'home', () => setTab('home'));
+  useBackLayer(recordOpen, () => setRecordOpen(false));
+  useBackLayer(goalOpen, () => setGoalOpen(false));
+  useBackLayer(storyOpen, () => setStoryOpen(false));
+  useBackLayer(adminOpen, () => setAdminOpen(false));
+  useBackLayer(adInquiryOpen, () => setAdInquiryOpen(false));
+  useBackLayer(profileOpen, () => setProfileOpen(false));
+  useBackLayer(energyOpen, () => setEnergyOpen(false));
+  useBackLayer(settingsOpen, () => setSettingsOpen(false));
+  useBackLayer(savingsMode !== null, () => setSavingsMode(null));
+  useBackLayer(success !== null, () => setSuccess(null));
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is unavailable during SSR, so persisted state must be hydrated in an effect (saved records and goals).
     try { const stored = localStorage.getItem('chamatta-data-v1'); if (stored) setData(JSON.parse(stored)); } catch { /* start clean */ }
@@ -263,6 +278,8 @@ const onboardingSteps = [
 
 function Onboarding({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
+  // 첫 장에서는 돌아갈 곳이 없으니 올리지 않는다. 그때 뒤로가기는 앱을 닫는다.
+  useBackLayer(index > 0, () => setIndex(i => Math.max(0, i - 1)));
   const last = index === onboardingSteps.length - 1;
   const step = onboardingSteps[index];
   return <div className="onboarding" role="dialog" aria-modal="true" aria-label="참았다! 사용 안내">
@@ -331,6 +348,12 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
   const [campaign,setCampaign]=useState<Campaign|null>(null);
   const [customMenus,setCustomMenus]=useState<MenuItem[]>([]);
   const [customMenuOpen,setCustomMenuOpen]=useState(false);
+  // 상점 단계는 화면 위쪽 ‹ 버튼과 같은 곳으로 돌아간다. 배달 진행 중에 누르면 취소와 같다.
+  useBackLayer(step !== 'list', () => setStep(step === 'checkout' ? 'cart' : step === 'cart' ? (selected ? 'shop' : 'list') : 'list'));
+  useBackLayer(reviewShop !== null, () => setReviewShop(null));
+  useBackLayer(optionMenu !== null, () => setOptionMenu(null));
+  useBackLayer(customMenuOpen, () => setCustomMenuOpen(false));
+  useBackLayer(journey !== null, () => setJourney(null));
   useEffect(()=>{req('/api/ads').then(r=>r.json() as Promise<AdsResponse>).then(p=>setCampaign((p.campaigns??[]).find((x:Campaign)=>x.placement==='market')??null)).catch(()=>undefined)},[]);
   // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is unavailable during SSR, so persisted state must be hydrated in an effect (custom menus).
   useEffect(()=>{try{const x=localStorage.getItem('chamatta-custom-menus-v1');if(x)setCustomMenus(JSON.parse(x))}catch{}},[]);

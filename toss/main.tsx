@@ -9,7 +9,9 @@
 
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { closeView, graniteEvent } from '@apps-in-toss/web-framework';
 import '../app/globals.css';
+import { goBack, useBackLayer } from '../app/back';
 import { LangProvider } from '../app/i18n';
 import Home from '../app/page';
 import PolicyBody from '../app/privacy/PolicyBody';
@@ -52,7 +54,30 @@ function App() {
     };
   }, []);
 
-  return path.startsWith('/privacy') ? <PolicyBody /> : <Home />;
+  // 시스템 뒤로가기.
+  //
+  // 앱인토스는 backEvent 를 구독하는 순간 기본 동작(미니앱 종료)을 막는다. 그래서
+  // 열린 화면이 있으면 하나 닫고, 더 닫을 게 없을 때만 closeView 로 직접 나간다.
+  // 구독하지 않았을 때는 어느 화면에서 누르든 앱이 종료돼 검토에서 반려됐다.
+  useEffect(() => {
+    try {
+      return graniteEvent.addEventListener('backEvent', {
+        onEvent: () => { if (!goBack()) void closeView(); },
+      });
+    } catch {
+      // 토스 밖(브라우저로 번들을 열어본 경우)에는 브리지가 없다. 뒤로가기는 브라우저에 맡긴다.
+      return undefined;
+    }
+  }, []);
+
+  // 방침 화면은 주소를 바꿔 들어오지만 뒤로가기는 위 스택으로 받는다. 홈으로 되돌린다.
+  const onPrivacy = path.startsWith('/privacy');
+  useBackLayer(onPrivacy, () => {
+    window.history.replaceState(null, '', '/');
+    setPath('/');
+  });
+
+  return onPrivacy ? <PolicyBody /> : <Home />;
 }
 
 const root = document.getElementById('root');
