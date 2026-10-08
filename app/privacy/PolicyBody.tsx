@@ -66,7 +66,7 @@ export default function PolicyBody() {
       </section>
 
       <Policy n="01" title={t('개인정보 처리자')}>
-        <p>{t('참았다 스튜디오(이하 “운영자”)는 ‘참았다!’ 앱 및 웹서비스를 운영합니다.')}</p>
+        <p>{t('하이파이브 스튜디오(이하 “운영자”)는 ‘참았다!’ 앱 및 웹서비스를 운영합니다.')}</p>
         <dl>
           <dt>{t('개인정보 문의·삭제 요청')}</dt>
           <dd><a href={MAILTO_ENQUIRY}>{CONTACT}</a></dd>

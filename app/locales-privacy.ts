@@ -24,8 +24,8 @@ export const enPrivacy: Dict = {
 
   // 01
   '개인정보 처리자': 'Who processes your data',
-  '참았다 스튜디오(이하 “운영자”)는 ‘참았다!’ 앱 및 웹서비스를 운영합니다.':
-    'Chamatta Studio ("we") operates the Chamatta app and web service.',
+  '하이파이브 스튜디오(이하 “운영자”)는 ‘참았다!’ 앱 및 웹서비스를 운영합니다.':
+    'HiFive Studio ("we") operates the Chamatta app and web service.',
   '개인정보 문의·삭제 요청': 'Privacy enquiries and deletion requests',
 
   // 02
