@@ -12,7 +12,7 @@ import SavingsChart from './SavingsChart';
 import ShopReviewsModal from './ShopReviewsModal';
 import Ranking from './Ranking';
 import DeliveryMap from './DeliveryMap';
-import { useT, useWon } from './i18n';
+import { useLang, useT, useWon } from './i18n';
 import { Energy, REVIEW_BONUS, canOrder, earn, loadEnergy, saveEnergy, spend } from './energy';
 import { adminHeaders, adminKey, deviceHeaders, deviceId } from './device';
 import { IN_TOSS, req } from './net';
@@ -300,20 +300,25 @@ function NavButton({ label, icon, active, onClick }: { label: string; icon: stri
 
 function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, openRecord, goMarket, goHistory, goGoals }: { monthSaved: number; todaySaved: number; totalSaved: number; streak: number; records: RecordItem[]; goals: Goal[]; openRecord: () => void; goMarket: () => void; goHistory: () => void; goGoals: () => void }) {
   const won = useWon();
+  const t = useT();
+  const { lang } = useLang();
+  // 숫자 뒤에 붙는 "일" 은 사전 키로 쓰기엔 너무 짧고 뜻이 갈려서 여기서 고른다.
+  // 영어는 "Day streak 3" 처럼 앞 라벨이 단위를 말해주므로 비워둔다.
+  const dayUnit = { ko: '일', en: '', ja: '日', zh: '天' }[lang];
   const goal = goals[0]; const percent = goal ? Math.min(100, Math.round(totalSaved / goal.amount * 100)) : 0;
   return <div className="page home-page">
     <section className="hero-card">
-      <div className="hero-copy"><span className="eyebrow">이번 달 방어 금액</span><h1>{money(monthSaved)}<small>원</small></h1><p>{monthSaved ? '좋아요. 작은 선택들이 모이고 있어요.' : '첫 소비 유혹을 막고 기록해보세요.'}</p></div>
+      <div className="hero-copy"><span className="eyebrow">{t('이번 달 방어 금액')}</span><h1>{lang === 'ko' ? <>{money(monthSaved)}<small>원</small></> : won(monthSaved)}</h1><p>{monthSaved ? t('좋아요. 작은 선택들이 모이고 있어요.') : t('첫 소비 유혹을 막고 기록해보세요.')}</p></div>
       <div className="shield" aria-hidden="true"><span>✓</span></div>
-      <div className="hero-bottom"><span>오늘 지킨 돈</span><b>{won(todaySaved)}</b><span className="hero-divider" /><span>연속 방어</span><b>{streak}일</b></div>
+      <div className="hero-bottom"><span>{t('오늘 지킨 돈')}</span><b>{won(todaySaved)}</b><span className="hero-divider" /><span>{t('연속 방어')}</span><b>{streak}{dayUnit}</b></div>
     </section>
-    <button className="primary-cta" onClick={openRecord}><span>＋</span><b>참았다!</b><small>방금 넘긴 소비 유혹 기록하기</small></button>
-    <button className="market-entry" onClick={goMarket}><span>🛵</span><div><small>새로운 방어 훈련</small><b>가상 상점에서 주문해보기</b><em>결제 직전, 한 번 더 생각해요</em></div><i>›</i></button>
+    <button className="primary-cta" onClick={openRecord}><span>＋</span><b>{t('참았다!')}</b><small>{t('방금 넘긴 소비 유혹 기록하기')}</small></button>
+    <button className="market-entry" onClick={goMarket}><span>🛵</span><div><small>{t('새로운 방어 훈련')}</small><b>{t('가상 상점에서 주문해보기')}</b><em>{t('결제 직전, 한 번 더 생각해요')}</em></div><i>›</i></button>
     {goal ? <button className="goal-card home-goal" onClick={goGoals}>
-      <div className="goal-top"><div><span className="eyebrow">나의 첫 번째 목표</span><h2>{goal.emoji} {goal.name}</h2></div><b>{percent}%</b></div>
-      <div className="progress"><i style={{ width: `${percent}%` }} /></div><div className="goal-numbers"><span><b>{won(totalSaved)}</b> 지켰어요</span><span>목표 {won(goal.amount)}</span></div>
-    </button> : <button className="empty-goal" onClick={goGoals}><span>◎</span><div><b>지킨 돈에 목적지를 만들어볼까요?</b><small>여행, 비상금, 갖고 싶던 물건까지</small></div><i>›</i></button>}
-    <section className="section-block"><div className="section-title"><h2>최근 기록</h2>{records.length > 0 && <button onClick={goHistory}>전체 보기</button>}</div>{records.length ? <RecordList records={records.slice(0, 4)} /> : <Empty icon="🌱" title="아직 기록이 없어요" text="오늘 참은 작은 소비부터 남겨보세요." action="첫 기록 남기기" onAction={openRecord} />}</section>
+      <div className="goal-top"><div><span className="eyebrow">{t('나의 첫 번째 목표')}</span><h2>{goal.emoji} {goal.name}</h2></div><b>{percent}%</b></div>
+      <div className="progress"><i style={{ width: `${percent}%` }} /></div><div className="goal-numbers"><span><b>{won(totalSaved)}</b> {t('지켰어요')}</span><span>{t('목표')} {won(goal.amount)}</span></div>
+    </button> : <button className="empty-goal" onClick={goGoals}><span>◎</span><div><b>{t('지킨 돈에 목적지를 만들어볼까요?')}</b><small>{t('여행, 비상금, 갖고 싶던 물건까지')}</small></div><i>›</i></button>}
+    <section className="section-block"><div className="section-title"><h2>{t('최근 기록')}</h2>{records.length > 0 && <button onClick={goHistory}>{t('전체 보기')}</button>}</div>{records.length ? <RecordList records={records.slice(0, 4)} /> : <Empty icon="🌱" title={t('아직 기록이 없어요')} text={t('오늘 참은 작은 소비부터 남겨보세요.')} action={t('첫 기록 남기기')} onAction={openRecord} />}</section>
   </div>;
 }
 
