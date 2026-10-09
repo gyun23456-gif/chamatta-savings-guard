@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ProfileModal from './ProfileModal';
 import SavingsModal, { SavingsQueue } from './SavingsModal';
 import CustomMenuModal from './CustomMenuModal';
@@ -322,6 +322,27 @@ function HomeView({ monthSaved, todaySaved, totalSaved, streak, records, goals, 
   </div>;
 }
 
+// 노출은 카드가 화면에 실제로 보일 때 한 번만 센다. 예전에는 onMouseEnter 로 셌는데,
+// 이용자 열에 일곱이 안드로이드라 노출이 거의 0으로 찍혔다(2026-09 집계에서 1건).
+function SponsorCard({ campaign, openAdInquiry }: { campaign: Campaign | null; openAdInquiry: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  // 캠페인이 바뀌면 다시 세되, 같은 캠페인은 스크롤로 오갈 때마다 중복해서 세지 않는다.
+  const counted = useRef('');
+  const event = (campaignId: string, eventType: 'view' | 'click') =>
+    req('/api/ads', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type:'event', campaignId, eventType }) }).catch(()=>undefined);
+  useEffect(() => {
+    const el = ref.current; const id = campaign?.id;
+    if (!el || !id || counted.current === id) return;
+    const io = new IntersectionObserver(entries => {
+      if (!entries.some(e => e.isIntersecting) || counted.current === id) return;
+      counted.current = id; io.disconnect(); event(id, 'view');
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [campaign?.id]);
+  return <button ref={ref} className="sponsor-card" onClick={()=>{if(campaign){event(campaign.id,'click');window.open(campaign.linkUrl,'_blank','noopener,noreferrer')}else openAdInquiry();}}><span><em>{campaign?.label??'AD · 제휴 예시'}</em><b>{campaign?.title??'목표를 응원하는 브랜드 자리'}</b><small>{campaign?.description??'참았다!와 함께할 파트너를 기다립니다.'}</small></span><i>{campaign?'자세히 ›':'광고 문의 ›'}</i></button>;
+}
+
 function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSettings, finishOrder, energy, spendEnergy, openEnergy, earnEnergy, nickname, deliveryView }: { deliveryView: 'map' | 'classic'; energy: Energy | null; spendEnergy: () => void; openEnergy: () => void; earnEnergy: (next: Energy) => void; nickname: string; cart: CartItem[]; setCart: React.Dispatch<React.SetStateAction<CartItem[]>>; stories: Story[]; openStory: () => void; openAdInquiry: () => void; openSettings: () => void; finishOrder: (result: Result, total: number, memo: string, calories?:number) => void }) {
   const won = useWon();
   const t = useT();
@@ -396,7 +417,7 @@ function MarketView({ cart, setCart, stories, openStory, openAdInquiry, openSett
     <section className="delivery-promo"><div><span>첫 가상 주문 도전</span><h1>먹고 싶은 메뉴를 담고<br/>결제 직전 한 번 더 생각해요</h1><p>실제 결제 없이 절약 습관만 남아요</p></div><span>🛵</span></section>
     <section className="popular-section"><div className="popular-heading"><div><span>TODAY&apos;S POPULAR</span><h2>지금 많이 참는 메뉴</h2><p>가상 주문에서 가장 자주 선택된 메뉴예요.</p></div></div><div className="popular-scroll">{popular.map(({shop,menu,rank})=><button key={shop.id} onClick={()=>{setSelected(shop);setStep('shop')}}><span className="popular-photo" style={foodPhotoStyle(shopPhotoIndex(shop))}><i>{rank}</i></span><b>{t(menu.name)}</b><small>{t(shop.name)}</small><em>{won(menu.price)}</em></button>)}</div></section>
     <section className="story-section"><div className="story-heading"><div><span>GOAL STORIES</span><h2>참은 사람들의 도착 후기</h2><p>진짜 목표를 이룬 순간을 나눠요.</p></div><button onClick={openStory}>후기 쓰기</button></div><div className="story-scroll">{stories.slice(0,4).map(s => <article className={s.featured?'story-card featured':'story-card'} key={s.id}><div><span>{s.status==='pending'?'⏳ 승인 대기':s.featured?'🏆 이달의 방어왕':`#${s.tag}`}</span><small>{s.createdAt}</small></div><h3>{s.title}</h3><p>“{s.body}”</p><footer><b>{s.nickname}</b><span>{s.goal} · {won(s.amount)} · {s.period}</span></footer></article>)}</div></section>
-    <button className="sponsor-card" onMouseEnter={()=>campaign&&req('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'view'})})} onClick={()=>{if(campaign){req('/api/ads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'event',campaignId:campaign.id,eventType:'click'})});window.open(campaign.linkUrl,'_blank','noopener,noreferrer')}else openAdInquiry();}}><span><em>{campaign?.label??'AD · 제휴 예시'}</em><b>{campaign?.title??'목표를 응원하는 브랜드 자리'}</b><small>{campaign?.description??'참았다!와 함께할 파트너를 기다립니다.'}</small></span><i>{campaign?'자세히 ›':'광고 문의 ›'}</i></button>
+    <SponsorCard campaign={campaign} openAdInquiry={openAdInquiry} />
     <div className="list-heading"><div><h2>오늘은 어떤 배달을 안 시킬까요?</h2><small>{allShops.length}개 음식점 · {menuCount}개 메뉴를 가상으로 주문해보세요</small></div><button className="add-custom-menu" onClick={()=>setCustomMenuOpen(true)}>＋ 직접 추가</button></div>
     <section className="shop-list">{filtered.length ? filtered.map(s => { const photos = shopPhotoSet(s); return <article className="shop-card photo-card" key={s.id} onClick={() => {setSelected(s);setStep('shop')}}>
       <div className="shop-gallery">
