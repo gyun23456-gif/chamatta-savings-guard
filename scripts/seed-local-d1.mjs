@@ -72,10 +72,12 @@ const inquiries = [
    '저축 연동 배너를 목표 달성 화면에 노출하고 싶습니다.', 'reviewing', daysAgo(9)],
 ];
 
+// 이벤트 이름은 app/api/ads 가 받는 'view' | 'click' 두 가지뿐이다.
+// 예전에는 여기서만 impression 을 써서, 운영자 화면 집계가 두 줄로 갈라졌다.
 const events = [];
-for (let i = 0; i < 34; i++) events.push([`seed-event-i-${i}`, 'seed-campaign-1', 'impression', daysAgo(i % 7)]);
+for (let i = 0; i < 34; i++) events.push([`seed-event-i-${i}`, 'seed-campaign-1', 'view', daysAgo(i % 7)]);
 for (let i = 0; i < 6; i++) events.push([`seed-event-c-${i}`, 'seed-campaign-1', 'click', daysAgo(i % 5)]);
-for (let i = 0; i < 21; i++) events.push([`seed-event-i2-${i}`, 'seed-campaign-2', 'impression', daysAgo(i % 6)]);
+for (let i = 0; i < 21; i++) events.push([`seed-event-i2-${i}`, 'seed-campaign-2', 'view', daysAgo(i % 6)]);
 for (let i = 0; i < 3; i++) events.push([`seed-event-c2-${i}`, 'seed-campaign-2', 'click', daysAgo(i % 3)]);
 
 const file = findDatabase();
