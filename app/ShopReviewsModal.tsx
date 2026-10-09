@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { deviceHeaders, deviceId } from './device';
 import { Energy, REVIEW_BONUS, earn } from './energy';
 import { req } from './net';
+import { useT } from './i18n';
 
 // 가게별 후기.
 //
@@ -33,6 +34,7 @@ export default function ShopReviewsModal({
   onChanged: () => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [rating, setRating] = useState(0);
@@ -178,7 +180,7 @@ export default function ShopReviewsModal({
             reviews.map((r, i) => (
               <article key={`${r.nickname}-${i}`} className={r.me ? 'mine' : ''}>
                 <header>
-                  <b>{r.nickname}{r.me && <em>나</em>}</b>
+                  <b>{r.nickname}{r.me && <em>{t('나')}</em>}</b>
                   <span>{'★'.repeat(r.rating)}</span>
                   <small>{dayOf(r.createdAt)}</small>
                 </header>

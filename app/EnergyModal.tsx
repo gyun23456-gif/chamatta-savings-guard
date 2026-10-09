@@ -70,7 +70,7 @@ export default function EnergyModal({ energy, onChange, onClose, onWriteReview }
 
   return (
     <div className="modal-backdrop" onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <section className="modal-sheet energy-sheet" role="dialog" aria-modal="true" aria-label="에너지 충전">
+      <section className="modal-sheet energy-sheet" role="dialog" aria-modal="true" aria-label={t('에너지 충전')}>
         <div className="modal-handle" />
         <header>
           <div>

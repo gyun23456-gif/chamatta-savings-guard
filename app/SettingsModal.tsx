@@ -108,9 +108,9 @@ export default function SettingsModal({profile,openProfile,onClose,energy,openEn
     setTimeout(()=>location.reload(),900);
   };
 
-  return <div className="modal-backdrop"><section className="modal-sheet settings-sheet"><header><div><span>MY SETTINGS</span><h2>설정</h2><p>참았다!를 내 방식에 맞게 사용해요.</p></div><button onClick={onClose}>×</button></header>
+  return <div className="modal-backdrop"><section className="modal-sheet settings-sheet"><header><div><span>MY SETTINGS</span><h2>{t('설정')}</h2><p>참았다!를 내 방식에 맞게 사용해요.</p></div><button onClick={onClose}>×</button></header>
 
-    <section className="settings-group"><h3>{t('내 프로필')}</h3><p>후기와 목표에 표시할 이름을 정해요.</p><button className="settings-account" onClick={openProfile}><span>{profile.authenticated?'🙂':'👤'}</span><div><b>{profile.authenticated?(profile.nickname||'내 프로필'):'내 프로필 만들기'}</b><small>{profile.authenticated?(profile.email||'닉네임 수정하기'):'닉네임만 정하면 바로 시작'}</small></div><i>›</i></button></section>
+    <section className="settings-group"><h3>{t('내 프로필')}</h3><p>후기와 목표에 표시할 이름을 정해요.</p><button className="settings-account" onClick={openProfile}><span>{profile.authenticated?'🙂':'👤'}</span><div><b>{profile.authenticated?(profile.nickname||t('내 프로필')):'내 프로필 만들기'}</b><small>{profile.authenticated?(profile.email||'닉네임 수정하기'):'닉네임만 정하면 바로 시작'}</small></div><i>›</i></button></section>
 
     <section className="settings-group"><h3>{t('언어')}</h3><p>앱에서 사용할 언어를 선택하세요.</p>{LANGS.map(item=><button key={item.code} className={`settings-choice${lang===item.code?' selected':''}`} onClick={()=>setLang(item.code)}><span>{item.flag}</span><b>{item.label}</b>{lang===item.code&&<i>✓</i>}</button>)}<p className="settings-fineprint">번역은 앱 화면부터 순서대로 적용하고 있어요. 아직 옮기지 못한 문구는 한국어로 보입니다.</p></section>
 
@@ -148,7 +148,7 @@ export default function SettingsModal({profile,openProfile,onClose,energy,openEn
 
     <section className="settings-group compact"><h3>{t('서비스 안내')}</h3>
       <div className="virtual-notice">이 앱의 상점·메뉴·주문·결제·배달은 <b>모두 가상</b>입니다. 실제 음식이 배달되거나 금액이 결제되지 않으며, 은행 이체는 사용자가 직접 은행 앱에서 진행합니다.</div>
-      <a href="/privacy">개인정보처리방침 <span>›</span></a>
+      <a href="/privacy">{t('개인정보처리방침')} <span>›</span></a>
       <a href="mailto:nomu5.help@gmail.com?subject=%EC%B0%B8%EC%95%98%EB%8B%A4!%20%EB%AC%B8%EC%9D%98">문의하기 <span>›</span></a>
       <button type="button" className="app-version" onClick={()=>setTaps(n=>n+1)}>버전 {APP_VERSION}</button>
       {taps>=7&&<div className="admin-key">

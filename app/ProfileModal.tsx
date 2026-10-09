@@ -1,11 +1,13 @@
 'use client';
 import { FormEvent, useState } from 'react';
+import { useT } from './i18n';
 
 type Profile={authenticated:boolean;nickname?:string;email?:string};
 
 const LOCAL_KEY='chamatta-local-profile';
 
 export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;onSaved:(p:Profile)=>void;onClose:()=>void}){
+  const t = useT();
   const [nickname,setNickname]=useState(profile.nickname??'');
   const [email,setEmail]=useState(profile.email??'');
   const [error,setError]=useState('');
@@ -51,12 +53,12 @@ export default function ProfileModal({profile,onSaved,onClose}:{profile:Profile;
   const removeProfile=()=>{try{localStorage.removeItem(LOCAL_KEY)}catch{/* 무시 */}onSaved({authenticated:false})};
 
   return <div className="modal-backdrop"><section className="modal-sheet profile-sheet">
-    <header><div><span>MY PROFILE</span><h2>내 프로필</h2><p>후기와 목표에 표시할 이름이에요.</p></div><button onClick={onClose} aria-label="닫기">×</button></header>
+    <header><div><span>MY PROFILE</span><h2>{t('내 프로필')}</h2><p>후기와 목표에 표시할 이름이에요.</p></div><button onClick={onClose} aria-label="닫기">×</button></header>
     <form className="profile-form" onSubmit={save}>
       <div className="profile-avatar">🙂</div>
       {profile.email&&<small>{profile.email}</small>}
       <label><span>닉네임</span><input autoFocus minLength={2} maxLength={16} required value={nickname} onChange={e=>{setNickname(e.target.value);setError('')}} placeholder="2~16자"/></label>
-      {isLocal&&<label><span>이메일 <small>선택</small></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>}
+      {isLocal&&<label><span>이메일 <small>{t('선택')}</small></span><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>}
       {error&&<p>{error}</p>}
       <button className="submit-button" disabled={nickname.trim().length<2}>프로필 저장</button>
       {isLocal&&<div className="profile-storage-note">🔒 이 프로필은 이 기기에만 저장돼 있어요.</div>}
